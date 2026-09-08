@@ -269,6 +269,24 @@ body {
   }
 }
 
+/* ── คำเตือนเรื่องไฟล์ถูกลบ ─────────────────────────────────────
+   ใช้ทุกจุดที่ไฟล์ถูกฝากไว้บนเซิร์ฟเวอร์ ผู้ใช้จะได้ไม่เข้าใจผิดว่าเก็บถาวร
+   ────────────────────────────────────────────────────────────── */
+.keep-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  border-radius: .625rem;
+  border: 1px solid rgba(178, 58, 52, .28);
+  background: rgba(178, 58, 52, .06);
+  padding: .625rem .75rem;
+  font-size: .75rem;
+  line-height: 1.65;
+  color: var(--seal-500);
+}
+.keep-notice > i { margin-top: .15rem; flex-shrink: 0; }
+.keep-notice strong { font-weight: 600; }
+
 /* ทุกช่องที่เลื่อนได้ในกล่อง ไม่ให้ลากทะลุไปเลื่อนหน้าข้างหลัง */
 .modal-backdrop .overflow-y-auto,
 .modal-backdrop .overflow-auto {

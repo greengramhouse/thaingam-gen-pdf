@@ -31,6 +31,7 @@
   var doMergeBtn    = document.getElementById('doMergeBtn');
   var doMergeLabel  = document.getElementById('doMergeLabel');
   var shareBtn      = document.getElementById('mergeShareBtn');
+  var keepNotice    = document.getElementById('mergeKeepNotice');
 
   if (!modal || !openBtn) return;
 
@@ -312,8 +313,12 @@
           showStatus('กำลังอัปโหลดขึ้น Drive...', true);
         });
       }).then(function (sent) {
-        if (sent) showStatus('ส่งเข้า LINE แล้ว ✓', false);
-        else hideStatus();
+        if (sent) {
+          showStatus('ส่งเข้า LINE แล้ว ✓', false);
+          if (keepNotice) keepNotice.classList.remove('hidden');
+        } else {
+          hideStatus();
+        }
       }).catch(function (err) {
         console.error(err);
         showStatus('แชร์ไม่สำเร็จ: ' + err.message, false, true);
@@ -336,6 +341,7 @@
   function resetState() {
     mergeFiles = [];
     fileItems.innerHTML = '';
+    if (keepNotice) keepNotice.classList.add('hidden');
     uploadZone.classList.remove('hidden');
     fileList.classList.add('hidden');
     addMoreRow.classList.add('hidden');

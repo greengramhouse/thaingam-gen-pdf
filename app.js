@@ -1550,6 +1550,30 @@ const CLOUD = {
 const cloudEnabled = () => /^https:\/\/script\.google\.com\/.+\/exec$/.test(CLOUD.webAppUrl.trim());
 
 /**
+ * ไฟล์บน Drive เป็นแค่ที่พักระหว่างส่ง ไม่ใช่ที่เก็บถาวร
+ *
+ * ตัวเลขนี้ควรตรงกับ PDF_KEEP_DAYS ใน Code.gs ซึ่งเป็นตัวลบไฟล์จริง
+ * แก้ที่เดียวแล้วข้อความเตือนทุกจุดในหน้าเว็บจะเปลี่ยนตาม
+ * ตั้ง 0 ถ้าไม่ต้องการระบุจำนวนวัน แต่ยังอยากเตือนให้ดาวน์โหลดเก็บไว้
+ */
+const FILE_KEEP_DAYS = 30;
+
+/** ข้อความเตือนกลาง ใช้ร่วมกันทั้งกล่องแชร์ กล่องแยกหน้า และกล่องรวมไฟล์ */
+function fileKeepNotice() {
+  return FILE_KEEP_DAYS > 0
+    ? `ไฟล์ที่ฝากไว้บน Drive จะถูกลบเมื่อครบ ${toThaiDigits(FILE_KEEP_DAYS)} วัน `
+      + 'กรุณาดาวน์โหลดเก็บไว้ในเครื่องด้วย'
+    : 'ไฟล์ที่ฝากไว้บน Drive เป็นที่พักชั่วคราว กรุณาดาวน์โหลดเก็บไว้ในเครื่องด้วย';
+}
+
+/** เติมข้อความเตือนลงทุกกล่องที่มีป้าย .keep-notice ตอนเปิดหน้าเว็บ */
+function paintKeepNotices() {
+  document.querySelectorAll('[data-keep-notice]').forEach((el) => {
+    el.textContent = fileKeepNotice();
+  });
+}
+
+/**
  * ส่งข้อมูลด้วย Content-Type แบบ text/plain โดยตั้งใจ
  * เพราะ Apps Script ไม่ตอบ preflight ของ CORS ถ้าใช้ application/json
  * คำขอจะถูกบล็อกก่อนถึงเซิร์ฟเวอร์
@@ -1687,5 +1711,6 @@ function initCloud() {
 
   if (window.innerWidth >= 768) toolPanel.classList.remove('translate-y-full');
 
+  paintKeepNotices();
   initCloud();
 })();

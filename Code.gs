@@ -30,9 +30,17 @@ const CONFIG = {
   // โฟลเดอร์ย่อยเก็บรูปหน้าเอกสารที่ส่งเข้า LINE แยกไว้ไม่ให้ปนกับ PDF
   IMAGE_FOLDER_NAME: 'ภาพแชร์เข้า LINE',
 
-  // เก็บรูปที่ส่งไปแล้วไว้กี่วัน ใช้กับ cleanOldShareImages() ที่ตั้งทริกเกอร์รายวันได้
+  // เก็บรูปที่ส่งไปแล้วไว้กี่วัน ใช้กับ cleanOldFiles() ที่ตั้งทริกเกอร์รายเดือนได้
   // ตั้ง 0 = ไม่ลบเลย
-  IMAGE_KEEP_DAYS: 30
+  IMAGE_KEEP_DAYS: 30,
+
+  // เก็บไฟล์ PDF ในโฟลเดอร์หลักไว้กี่วัน ควรตรงกับ FILE_KEEP_DAYS ใน app.js
+  // ที่หน้าเว็บใช้ขึ้นข้อความเตือนผู้ใช้ ตั้ง 0 = ไม่ลบเลย
+  PDF_KEEP_DAYS: 30,
+
+  // ย้ายลงถังขยะ (กู้คืนได้ราว 30 วัน) แทนการลบถาวร
+  // ตั้ง true ต่อเมื่อมั่นใจจริง ๆ ว่าไม่ต้องกู้คืนอีก
+  DELETE_PERMANENTLY: false
 };
 
 const HEADERS = [
@@ -388,31 +396,195 @@ function getImageFolder() {
 }
 
 /**
- * ย้ายรูปเก่าที่ส่งไปแล้วลงถังขยะ กดรันเองหรือตั้งทริกเกอร์รายวันก็ได้
+ * ══════════════════════════════════════════════════════════════════════
+ * เก็บกวาดไฟล์เก่า
  *
- * ผู้รับที่ย้อนไปเปิดข้อความเก่าจะไม่เห็นรูปอีก เพราะ LINE ไปดึงจากลิงก์ทุกครั้ง
- * ถ้าต้องการให้รูปอยู่ถาวร ให้ตั้ง IMAGE_KEEP_DAYS เป็น 0
+ * หน้าเว็บขึ้นข้อความเตือนผู้ใช้ว่าไฟล์จะถูกลบเมื่อครบกำหนด ฟังก์ชันชุดนี้
+ * คือคนที่ทำให้คำเตือนนั้นเป็นจริง ตั้งทริกเกอร์ครั้งเดียวแล้วปล่อยได้เลย
+ *
+ *   setupCleanupTrigger()  ← รันครั้งเดียว ตั้งให้เก็บกวาดเดือนละครั้ง
+ *   cleanOldFiles()        ← ตัวเก็บกวาดจริง กดรันเองก็ได้
+ *   previewCleanup()       ← ดูก่อนว่าจะลบอะไรบ้าง โดยยังไม่ลบ
+ *
+ * กวาดเฉพาะในโฟลเดอร์ที่ตั้งไว้ใน FOLDER_ID เท่านั้น ไม่แตะ Drive ส่วนอื่น
+ * ══════════════════════════════════════════════════════════════════════
  */
-function cleanOldShareImages() {
-  const days = Number(CONFIG.IMAGE_KEEP_DAYS || 0);
+
+/** วันไหนถือว่าเก่าเกินกำหนด */
+function cutoffDate_(days) {
+  return new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * กวาดโฟลเดอร์เดียว คืนจำนวนที่จัดการไป
+ *
+ * Apps Script ให้เวลารันครั้งละ 6 นาที โฟลเดอร์ที่มีไฟล์เป็นหมื่นจะรันไม่จบ
+ * จึงจับเวลาไว้ด้วย ถ้าใกล้หมดเวลาให้หยุดก่อนแล้วค่อยไปต่อรอบหน้า
+ * ไม่ใช่ปัญหาเพราะทริกเกอร์วิ่งซ้ำอยู่แล้ว
+ */
+function sweepFolder_(folder, days, label, startedAt) {
   if (!days) {
-    Logger.log('IMAGE_KEEP_DAYS เป็น 0 จึงไม่ลบรูปใด');
-    return;
+    Logger.log('· ' + label + ': ตั้งไว้ 0 วัน จึงไม่ลบ');
+    return { removed: 0, kept: 0, stopped: false };
   }
 
-  const deadline = new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000);
-  const files = getImageFolder().getFiles();
+  const deadline = cutoffDate_(days);
+  const files = folder.getFiles();
+  const permanently = CONFIG.DELETE_PERMANENTLY === true;
+
   let removed = 0;
+  let kept = 0;
+  let stopped = false;
 
   while (files.hasNext()) {
+    // เผื่อเวลาไว้ 60 วินาทีให้เขียน Log ปิดท้ายได้ทัน
+    if (new Date().getTime() - startedAt > 4.5 * 60 * 1000) {
+      stopped = true;
+      break;
+    }
+
     const file = files.next();
-    if (file.getDateCreated() < deadline) {
-      file.setTrashed(true);
+
+    if (file.getDateCreated() >= deadline) {
+      kept++;
+      continue;
+    }
+
+    try {
+      if (permanently) {
+        // ลบถาวรต้องเปิด Advanced Drive Service ก่อน ถ้ายังไม่ได้เปิดจะ throw
+        // ตรงนี้ ให้ถอยไปใช้ถังขยะแทน ดีกว่าปล่อยไฟล์ค้างไว้เฉย ๆ
+        try {
+          Drive.Files.remove(file.getId());
+        } catch (noAdvancedService) {
+          file.setTrashed(true);
+        }
+      } else {
+        file.setTrashed(true);
+      }
       removed++;
+    } catch (err) {
+      Logger.log('  ลบไม่สำเร็จ ' + file.getName() + ': ' + err);
     }
   }
 
-  Logger.log('ย้ายรูปที่เก่ากว่า ' + days + ' วันลงถังขยะแล้ว ' + removed + ' ไฟล์');
+  Logger.log('· ' + label + ': ลบ ' + removed + ' ไฟล์ · เหลือ ' + kept + ' ไฟล์'
+    + (stopped ? ' · หยุดกลางคันเพราะใกล้หมดเวลา จะไปต่อรอบหน้า' : ''));
+
+  return { removed: removed, kept: kept, stopped: stopped };
+}
+
+/**
+ * เก็บกวาดทั้ง PDF และรูปที่เก่าเกินกำหนด
+ * ตั้งทริกเกอร์ให้วิ่งเองด้วย setupCleanupTrigger() หรือกดรันเองเมื่อไหร่ก็ได้
+ */
+function cleanOldFiles() {
+  const startedAt = new Date().getTime();
+  const root = getFolder();
+
+  Logger.log('เริ่มเก็บกวาดโฟลเดอร์ "' + root.getName() + '"'
+    + (CONFIG.DELETE_PERMANENTLY === true ? ' (ลบถาวร)' : ' (ย้ายลงถังขยะ)'));
+
+  // getFiles() คืนเฉพาะไฟล์ในชั้นนี้ ไม่ลงไปในโฟลเดอร์ย่อย
+  // รูปที่อยู่ใน "ภาพแชร์เข้า LINE" จึงไม่โดนกวาดด้วยกฎของ PDF
+  const pdf = sweepFolder_(root, Number(CONFIG.PDF_KEEP_DAYS || 0),
+    'ไฟล์ PDF (เก็บ ' + (CONFIG.PDF_KEEP_DAYS || 0) + ' วัน)', startedAt);
+
+  let image = { removed: 0, kept: 0, stopped: false };
+  try {
+    image = sweepFolder_(getImageFolder(), Number(CONFIG.IMAGE_KEEP_DAYS || 0),
+      'รูปแชร์เข้า LINE (เก็บ ' + (CONFIG.IMAGE_KEEP_DAYS || 0) + ' วัน)', startedAt);
+  } catch (err) {
+    Logger.log('· ข้ามโฟลเดอร์รูป: ' + err);
+  }
+
+  const summary = 'รวมลบไป ' + (pdf.removed + image.removed) + ' ไฟล์ '
+    + 'ใช้เวลา ' + Math.round((new Date().getTime() - startedAt) / 1000) + ' วินาที';
+  Logger.log(summary);
+
+  return { pdf: pdf, image: image, summary: summary };
+}
+
+/**
+ * ดูก่อนว่ารอบหน้าจะลบอะไรบ้าง โดยยังไม่ลบอะไรเลย
+ * ควรกดรันดูสักครั้งก่อนตั้งทริกเกอร์ จะได้ไม่ตกใจทีหลัง
+ */
+function previewCleanup() {
+  const report = function (folder, days, label) {
+    if (!days) { Logger.log('· ' + label + ': ตั้งไว้ 0 วัน จึงไม่ลบ'); return; }
+
+    const deadline = cutoffDate_(days);
+    const files = folder.getFiles();
+    const doomed = [];
+    let kept = 0;
+
+    while (files.hasNext()) {
+      const file = files.next();
+      if (file.getDateCreated() < deadline) {
+        doomed.push('    - ' + file.getName() + '  (สร้างเมื่อ '
+          + Utilities.formatDate(file.getDateCreated(), Session.getScriptTimeZone(), 'd MMM yyyy') + ')');
+      } else {
+        kept++;
+      }
+    }
+
+    Logger.log('· ' + label + ': จะลบ ' + doomed.length + ' ไฟล์ · เหลือ ' + kept + ' ไฟล์');
+    Logger.log(doomed.slice(0, 50).join('\n') || '    (ไม่มีไฟล์ที่ถึงกำหนด)');
+    if (doomed.length > 50) Logger.log('    ... และอีก ' + (doomed.length - 50) + ' ไฟล์');
+  };
+
+  Logger.log('=== ตัวอย่างผลการเก็บกวาด (ยังไม่ลบจริง) ===');
+  report(getFolder(), Number(CONFIG.PDF_KEEP_DAYS || 0), 'ไฟล์ PDF');
+  try {
+    report(getImageFolder(), Number(CONFIG.IMAGE_KEEP_DAYS || 0), 'รูปแชร์เข้า LINE');
+  } catch (err) {
+    Logger.log('· ข้ามโฟลเดอร์รูป: ' + err);
+  }
+}
+
+/**
+ * ตั้งทริกเกอร์ให้เก็บกวาดเดือนละครั้ง — รันฟังก์ชันนี้ครั้งเดียวก็พอ
+ *
+ * ลบทริกเกอร์เดิมของ cleanOldFiles ทิ้งก่อนเสมอ กดรันซ้ำกี่ครั้งก็ได้
+ * ทริกเกอร์รายเดือนของ Apps Script ตั้งได้แค่ "วันที่เท่าไรของเดือน"
+ * จึงเลือกวันที่ 1 ตีสอง ซึ่งเป็นเวลาที่ไม่มีใครใช้งาน
+ *
+ * หมายเหตุ: กวาดเดือนละครั้งแปลว่าไฟล์อาจอยู่นานกว่ากำหนดได้ถึงเกือบสองเท่า
+ * (ครบ 30 วันวันที่ 2 ก็ต้องรอถึงวันที่ 1 เดือนถัดไป) ถ้าอยากให้ตรงกำหนดกว่านี้
+ * ให้เปลี่ยน .onMonthDay(1) เป็น .everyDays(1)
+ */
+function setupCleanupTrigger() {
+  removeCleanupTriggers();
+
+  ScriptApp.newTrigger('cleanOldFiles')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(2)
+    .create();
+
+  Logger.log('ตั้งทริกเกอร์แล้ว: cleanOldFiles จะทำงานทุกวันที่ 1 ของเดือน ราวตีสอง');
+  Logger.log('ตรวจรายการทริกเกอร์ได้ที่ไอคอนนาฬิกาในแถบซ้ายของหน้า Apps Script');
+}
+
+/** ถอนทริกเกอร์เก็บกวาดทั้งหมดออก */
+function removeCleanupTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+  let removed = 0;
+
+  triggers.forEach(function (trigger) {
+    const fn = trigger.getHandlerFunction();
+    if (fn === 'cleanOldFiles' || fn === 'cleanOldShareImages') {
+      ScriptApp.deleteTrigger(trigger);
+      removed++;
+    }
+  });
+
+  Logger.log('ถอนทริกเกอร์เก็บกวาดออก ' + removed + ' รายการ');
+}
+
+/** ชื่อเดิมที่เคยใช้ เผื่อมีทริกเกอร์เก่าค้างอยู่ ให้วิ่งเข้าตัวใหม่แทน */
+function cleanOldShareImages() {
+  return cleanOldFiles();
 }
 
 /** เลขทะเบียนถัดไป โดยดูเลขสูงสุดที่มีอยู่ในชีต */

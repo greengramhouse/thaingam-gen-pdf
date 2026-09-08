@@ -50,6 +50,7 @@
   var doSplitLabel    = document.getElementById('doSplitLabel');
   var shareBtn        = document.getElementById('splitShareBtn');
   var shareLabel      = document.getElementById('splitShareLabel');
+  var keepNotice      = document.getElementById('splitKeepNotice');
 
   if (!modal || !openBtn) return;
 
@@ -578,8 +579,12 @@
           showStatus('กำลังอัปโหลดขึ้น Drive (' + done + '/' + total + ')...', true);
         });
       }).then(function (sent) {
-        if (sent) showStatus('ส่งเข้า LINE แล้ว ✓', false);
-        else hideStatus();
+        if (sent) {
+          showStatus('ส่งเข้า LINE แล้ว ✓', false);
+          if (keepNotice) keepNotice.classList.remove('hidden');
+        } else {
+          hideStatus();
+        }
       }).catch(function (err) {
         console.error(err);
         showStatus('แชร์ไม่สำเร็จ: ' + err.message, false, true);
@@ -687,6 +692,7 @@
     pageList.innerHTML = '';
     rangeListEl.innerHTML = '';
     rangeInput.value = '';
+    if (keepNotice) keepNotice.classList.add('hidden');
     uploadZone.classList.remove('hidden');
     toolbar.classList.add('hidden');
     modePicker.classList.add('hidden');
