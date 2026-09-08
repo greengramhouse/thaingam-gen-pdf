@@ -172,6 +172,62 @@ function persistOrgSettings() {
   }
 }
 
+/**
+ * คัดเฉพาะคีย์ที่หน้าเว็บนี้ใช้จริง
+ *
+ * ชีต "ตั้งค่าหน่วยงาน" ยังมีคอลัมน์ของเดิมอย่างชื่อ ผอ. และรอง ผอ. ค้างอยู่
+ * ซึ่งเลิกใช้ไปแล้วตอนตัดระบบตรายางออก คีย์พวกนั้นจึงถูกข้ามไปเฉย ๆ
+ * ไม่ต้องไปลบแถวในชีตทิ้ง
+ */
+function pickOrgFields(values) {
+  const picked = {};
+
+  Object.keys(ORG_DEFAULTS).forEach((key) => {
+    if (!(key in values)) return;
+
+    const text = String(values[key] === null || values[key] === undefined ? '' : values[key]).trim();
+    // ช่องว่างในชีตแปลว่า "ไม่ตั้งโลโก้" ส่วนชื่อหน่วยงานว่างให้คงค่าเดิมไว้
+    if (text || key === 'logoUrl') picked[key] = text;
+  });
+
+  return picked;
+}
+
+/**
+ * ดึงค่าจากชีตมาทับค่าในเครื่อง
+ * เรียกตอนเปิดหน้าเว็บ (เงียบ ๆ) และตอนกดปุ่มดึงค่าเอง
+ */
+async function syncOrgSettingsFromCloud({ silent = true } = {}) {
+  if (!cloudEnabled()) {
+    if (!silent) toast('ยังไม่ได้เชื่อมต่อเซิร์ฟเวอร์ ค่าจึงเก็บไว้ในเครื่องนี้', 'info');
+    return false;
+  }
+
+  try {
+    const out = await cloudGet({ action: 'settings' });
+    const fields = pickOrgFields(out.settings || {});
+
+    if (!Object.keys(fields).length) {
+      if (!silent) toast('ในชีตยังไม่มีค่าที่ตั้งไว้ กดบันทึกเพื่อส่งค่าชุดนี้ขึ้นไป', 'info');
+      return false;
+    }
+
+    org = { ...ORG_DEFAULTS, ...org, ...fields };
+    persistOrgSettings();
+    applyOrgSettings();
+
+    if (!silent) {
+      fillSettingsForm(org);
+      toast('ดึงค่าล่าสุดจากชีตแล้ว');
+    }
+    return true;
+  } catch (err) {
+    console.warn('ดึงค่าตั้งค่าจากชีตไม่สำเร็จ ใช้ค่าที่เก็บในเครื่องแทน', err);
+    if (!silent) toast(cloudErrorMessage(err), 'error');
+    return false;
+  }
+}
+
 function setTextIfExists(id, value) {
   const el = $(id);
   if (el) el.textContent = value;
@@ -232,8 +288,19 @@ function updateSettingsPreview() {
   }
 }
 
+/** บอกให้ชัดว่าค่าที่กรอกจะไปอยู่ที่ไหน ชีตกลางหรือเครื่องนี้เท่านั้น */
+function updateSettingsStorageNote() {
+  setTextIfExists('settings-storage-note', cloudEnabled()
+    ? 'ค่าเหล่านี้เก็บในชีต "ตั้งค่าหน่วยงาน" ทุกเครื่องที่เปิดระบบจะได้ค่าชุดเดียวกัน'
+    : 'ยังไม่ได้เชื่อมต่อเซิร์ฟเวอร์ ค่าจึงเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น');
+
+  const pull = $('pullSettingsBtn');
+  if (pull) pull.classList.toggle('hidden', !cloudEnabled());
+}
+
 function openSettings() {
   fillSettingsForm(org);
+  updateSettingsStorageNote();
   openSheet($('settingsModal'));
 }
 
@@ -243,12 +310,18 @@ $('closeSettingsModal').addEventListener('click', () => closeSheet($('settingsMo
 $('cancelSettingsBtn').addEventListener('click', () => closeSheet($('settingsModal')));
 $('settingsForm').addEventListener('input', updateSettingsPreview);
 
+$('pullSettingsBtn').addEventListener('click', async () => {
+  showLoading('กำลังดึงค่าจากชีต...');
+  await syncOrgSettingsFromCloud({ silent: false });
+  hideLoading();
+});
+
 $('resetSettingsBtn').addEventListener('click', () => {
   fillSettingsForm(ORG_DEFAULTS);
   toast('เติมค่าเริ่มต้นให้แล้ว กดบันทึกเพื่อยืนยัน', 'info');
 });
 
-$('settingsForm').addEventListener('submit', (e) => {
+$('settingsForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const next = readSettingsForm();
 
@@ -259,13 +332,38 @@ $('settingsForm').addEventListener('submit', (e) => {
 
   org = { ...ORG_DEFAULTS, ...next };
 
-  const stored = persistOrgSettings();
+  const stored = persistOrgSettings();   // สำเนาในเครื่อง ใช้ต่อได้แม้ชีตล่ม
   applyOrgSettings();
+
+  // ที่เก็บจริงคือชีต ส่งขึ้นไปให้เครื่องอื่นเห็นค่าเดียวกัน
+  let cloudError = '';
+  if (cloudEnabled()) {
+    showLoading('กำลังบันทึกลงชีตตั้งค่า...');
+    try {
+      const out = await cloudPost('saveSettings', { settings: org });
+      const fields = pickOrgFields(out.settings || {});
+      if (Object.keys(fields).length) {
+        org = { ...ORG_DEFAULTS, ...org, ...fields };
+        persistOrgSettings();
+        applyOrgSettings();
+      }
+    } catch (err) {
+      console.error(err);
+      cloudError = cloudErrorMessage(err);
+    } finally {
+      hideLoading();
+    }
+  }
+
   closeSheet($('settingsModal'));
 
-  toast(stored
-    ? 'บันทึกการตั้งค่าแล้ว'
-    : 'บันทึกแล้ว แต่จำค่าไว้ในเครื่องไม่ได้ ค่าจะหายเมื่อปิดหน้านี้', stored ? 'success' : 'info');
+  if (cloudError) {
+    toast(`บันทึกลงชีตไม่สำเร็จ: ${cloudError} (เก็บไว้ในเครื่องนี้แล้ว)`, 'error');
+  } else if (!stored && !cloudEnabled()) {
+    toast('บันทึกแล้ว แต่จำค่าไว้ในเครื่องไม่ได้ ค่าจะหายเมื่อปิดหน้านี้', 'info');
+  } else {
+    toast(cloudEnabled() ? 'บันทึกลงชีตตั้งค่าแล้ว' : 'บันทึกการตั้งค่าแล้ว');
+  }
 });
 
 loadOrgSettings();
@@ -1561,7 +1659,7 @@ document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
    ส่วนการแก้ไข ดาวน์โหลด แยกหน้า และรวมไฟล์ ยังทำงานในเครื่องได้ตามปกติ
    ═══════════════════════════════════════════════════════════════════ */
 const CLOUD = {
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbxfr6zVeDG6-00wv8Pl7UtRudmmI5lsZ1yNTc36yE9jMksjL10dvXgv01eeKEARW4rN/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbyzowR_RBRXb8XT0GKVaBg8pXwmHwDOTHpm4dLZfefzJhHgewbTFaqJCyaGKKTASveI/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
   apiKey: 'thaigham-2569-x8k2m9'     // ← ต้องตรงกับ API_KEY ใน Code.gs
 };
 
@@ -1731,4 +1829,8 @@ function initCloud() {
 
   paintKeepNotices();
   initCloud();
+  updateSettingsStorageNote();
+
+  // ค่าในเครื่องแสดงไปก่อนแล้ว ค่าจากชีตจะมาทับเมื่อโหลดเสร็จ ไม่ต้องรอ
+  syncOrgSettingsFromCloud();
 })();
