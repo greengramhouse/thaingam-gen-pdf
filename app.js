@@ -1543,7 +1543,7 @@ document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
    ส่วนการแก้ไข ดาวน์โหลด แยกหน้า และรวมไฟล์ ยังทำงานในเครื่องได้ตามปกติ
    ═══════════════════════════════════════════════════════════════════ */
 const CLOUD = {
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbyzowR_RBRXb8XT0GKVaBg8pXwmHwDOTHpm4dLZfefzJhHgewbTFaqJCyaGKKTASveI/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbxfr6zVeDG6-00wv8Pl7UtRudmmI5lsZ1yNTc36yE9jMksjL10dvXgv01eeKEARW4rN/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
   apiKey: 'thaigham-2569-x8k2m9'     // ← ต้องตรงกับ API_KEY ใน Code.gs
 };
 
