@@ -504,14 +504,38 @@
     });
   }
 
-  function downloadBytes(bytes, filename, mime) {
-    var blob = new Blob([bytes], { type: mime || 'application/pdf' });
+  /** ข้อความปิดท้าย ต้องตรงกับวิธีที่ใช้จริง ไม่งั้นจะบอกว่าดาวน์โหลดแล้วทั้งที่ยังไม่ได้ไฟล์ */
+  function doneMessage(how, what) {
+    if (how === 'drive') return 'เปิด ' + what + ' ในเบราว์เซอร์แล้ว กดดาวน์โหลดต่อได้เลย ✓';
+    return 'สร้าง ' + what + ' เสร็จแล้ว ✓';
+  }
+
+  /**
+   * ส่งไฟล์ถึงมือผู้ใช้ คืน Promise ของวิธีที่ใช้จริง
+   * ในแอป LINE จะอ้อมผ่าน Drive ให้เอง เพราะดาวน์โหลดตรงใช้ไม่ได้ในนั้น
+   */
+  function downloadBytes(bytes, filename, mime, meta) {
+    var type = mime || 'application/pdf';
+    var blob = new Blob([bytes], { type: type });
+
+    if (window.LineFile) {
+      return window.LineFile.save({
+        data: blob,
+        filename: filename,
+        mimeType: type,
+        title: (meta && meta.title) || filename.replace(/\.[a-z0-9]+$/i, ''),
+        pageCount: (meta && meta.pageCount) || 0,
+        onProgress: function () { showStatus('กำลังอัปโหลดเพื่อเปิดในเบราว์เซอร์...', true); }
+      });
+    }
+
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    return Promise.resolve('saved');
   }
 
   /* ── ปุ่มดาวน์โหลด ── */
@@ -601,8 +625,10 @@
     var sortedIdx = Array.from(splitSelected).sort(function (a, b) { return a - b; });
 
     buildPdfBytes(sortedIdx).then(function (bytes) {
-      downloadBytes(bytes, splitFileName.replace(/\.pdf$/i, '') + '_split.pdf');
-      showStatus('สร้าง PDF เสร็จแล้ว (' + sortedIdx.length + ' หน้า) ✓', false);
+      return downloadBytes(bytes, splitFileName.replace(/\.pdf$/i, '') + '_split.pdf',
+        null, { pageCount: sortedIdx.length });
+    }).then(function (how) {
+      showStatus(doneMessage(how, 'PDF (' + sortedIdx.length + ' หน้า)'), false);
     }).catch(function (err) {
       console.error(err);
       showStatus('เกิดข้อผิดพลาด: ' + err.message, false, true);
@@ -627,6 +653,7 @@
 
     var zip = ready.length > 1 ? new JSZip() : null;
     var used = {};
+    var lastHow = 'saved';
     var chain = Promise.resolve();
 
     ready.forEach(function (item, order) {
@@ -640,24 +667,30 @@
           if (used[name]) name = name.replace(/\.pdf$/i, '') + ' (' + (order + 1) + ').pdf';
           used[name] = true;
 
-          if (zip) zip.file(name, bytes);
-          else downloadBytes(bytes, name);
+          if (zip) {
+            zip.file(name, bytes);
+            showStatus('กำลังสร้างไฟล์ ' + (order + 1) + ' จาก ' + ready.length + '...', true);
+            return null;
+          }
 
-          showStatus('กำลังสร้างไฟล์ ' + (order + 1) + ' จาก ' + ready.length + '...', true);
+          return downloadBytes(bytes, name, null, { pageCount: item.check.pages.length });
+        }).then(function (how) {
+          if (how) lastHow = how;
         });
       });
     });
 
     chain.then(function () {
       if (!zip) {
-        showStatus('สร้าง PDF เสร็จแล้ว ✓', false);
+        showStatus(doneMessage(lastHow, 'PDF'), false);
         return;
       }
 
       showStatus('กำลังบีบอัดเป็นไฟล์ zip...', true);
       return zip.generateAsync({ type: 'blob' }).then(function (blob) {
-        downloadBytes(blob, splitFileName.replace(/\.pdf$/i, '') + '_แยกช่วง.zip', 'application/zip');
-        showStatus('สร้างไฟล์ zip เสร็จแล้ว (' + ready.length + ' ไฟล์) ✓', false);
+        return downloadBytes(blob, splitFileName.replace(/\.pdf$/i, '') + '_แยกช่วง.zip', 'application/zip');
+      }).then(function (how) {
+        showStatus(doneMessage(how, 'ไฟล์ zip (' + ready.length + ' ไฟล์)'), false);
       });
     }).catch(function (err) {
       console.error(err);

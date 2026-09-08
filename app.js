@@ -89,6 +89,21 @@ function getActiveCanvas() {
   return canvas;
 }
 
+/**
+ * ส่งไฟล์ถึงมือผู้ใช้
+ *
+ * บนเบราว์เซอร์ทั่วไปคือดาวน์โหลดตรง ๆ ส่วนในแอป LINE จะอ้อมผ่าน Drive ให้เอง
+ * เพราะ <a download> ที่ชี้ไป blob: ใช้ไม่ได้ในนั้น (ดูรายละเอียดใน liff-share.js)
+ * ถ้ายังไม่ได้โหลด liff-share.js ก็ถอยไปดาวน์โหลดตรงตามเดิม
+ */
+function deliverFile(blob, filename, options = {}) {
+  if (window.LineFile) {
+    return window.LineFile.save({ ...options, data: blob, filename });
+  }
+  downloadBlob(blob, filename);
+  return Promise.resolve('saved');
+}
+
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1149,8 +1164,11 @@ $('export-pdf-btn').addEventListener('click', async () => {
   showLoading('กำลังสร้าง PDF...');
   try {
     const pdf = await buildPdf();
-    pdf.save(documentFilename());
-    toast('ดาวน์โหลด PDF แล้ว');
+    const how = await deliverFile(pdf.output('blob'), documentFilename(), {
+      title: ($('doc-title').textContent || '').trim(),
+      pageCount: fabricCanvases.length
+    });
+    if (how === 'saved') toast('ดาวน์โหลด PDF แล้ว');
   } catch (err) {
     console.error(err);
     toast('สร้าง PDF ไม่สำเร็จ', 'error');
@@ -1543,7 +1561,7 @@ document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
    ส่วนการแก้ไข ดาวน์โหลด แยกหน้า และรวมไฟล์ ยังทำงานในเครื่องได้ตามปกติ
    ═══════════════════════════════════════════════════════════════════ */
 const CLOUD = {
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbxfr6zVeDG6-00wv8Pl7UtRudmmI5lsZ1yNTc36yE9jMksjL10dvXgv01eeKEARW4rN/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbyzowR_RBRXb8XT0GKVaBg8pXwmHwDOTHpm4dLZfefzJhHgewbTFaqJCyaGKKTASveI/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
   apiKey: 'thaigham-2569-x8k2m9'     // ← ต้องตรงกับ API_KEY ใน Code.gs
 };
 

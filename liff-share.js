@@ -908,11 +908,14 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
-/** อัปไฟล์หนึ่งก้อนขึ้น Drive แล้วคืนก้อนข้อมูลการ์ดพร้อมลิงก์ปุ่มส่งต่อ */
-async function uploadBytesForShare(item) {
+/**
+ * อัปไฟล์หนึ่งก้อนขึ้น Drive คืนลิงก์ที่เปิดดูได้ทันที
+ * ใช้ร่วมกันทั้งปุ่มแชร์ และปุ่มดาวน์โหลดตอนอยู่ในแอป LINE
+ */
+async function uploadBytesToDrive(item) {
   const filename = String(item.filename || 'เอกสาร.pdf').replace(/[\\/:*?"<>|]/g, '-');
   const info = {
-    title: (item.title || filename.replace(/\.pdf$/i, '')).trim(),
+    title: (item.title || filename.replace(/\.[a-z0-9]+$/i, '')).trim(),
     pageCount: item.pageCount || 0,
     date: new Date().toISOString().slice(0, 10)
   };
@@ -921,22 +924,140 @@ async function uploadBytesForShare(item) {
     data: info,
     saveToSheet: false,
     pdfBase64: bytesToBase64(item.bytes),
-    filename
+    filename,
+    mimeType: item.mimeType || 'application/pdf'
   });
 
   const viewUrl = out.fileId
     ? `https://drive.google.com/file/d/${out.fileId}/view?usp=sharing`
     : (out.fileUrl || '');
 
-  const payload = FlexDoc.payloadFromDoc(info, {
+  return {
+    info, filename,
+    fileId: out.fileId || '',
+    fileUrl: out.fileUrl || '',
+    viewUrl,
+    // Code.gs รุ่นเก่ายังไม่ส่งค่านี้กลับมา ถือว่าแชร์แล้วเพื่อไม่ให้เตือนพร่ำเพรื่อ
+    shared: out.shared !== false
+  };
+}
+
+/** อัปไฟล์ขึ้น Drive แล้วประกอบเป็นก้อนข้อมูลการ์ดพร้อมลิงก์ปุ่มส่งต่อ */
+async function uploadBytesForShare(item) {
+  const up = await uploadBytesToDrive(item);
+
+  const payload = FlexDoc.payloadFromDoc(up.info, {
     school: currentSchool(),
-    pdfUrl: viewUrl,
-    fileId: out.fileId || ''
+    pdfUrl: up.viewUrl,
+    fileId: up.fileId
   });
 
   const forward = await FlexDoc.forwardUrl(payload, FORWARD_BASE);
   return { payload, forwardUrl: forward.url };
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ดาวน์โหลดไฟล์ให้ได้จริงบนเบราว์เซอร์ในแอป LINE
+
+   ปกติเว็บดาวน์โหลดไฟล์ด้วย <a download> ที่ชี้ไปยัง blob: ในหน่วยความจำ
+   วิธีนี้ใช้ได้ดีบนเบราว์เซอร์ทั่วไป แต่เบราว์เซอร์ในแอป LINE รองรับไม่ครบ
+   โดยเฉพาะบน iOS ที่กดแล้วมักเงียบไปเฉย ๆ ไม่ได้ไฟล์
+
+   ทางออกคืออัปไฟล์ขึ้น Drive แล้วสั่งเปิดลิงก์นั้นใน "เบราว์เซอร์จริง"
+   ของเครื่องด้วย liff.openWindow({ external: true }) ผู้ใช้กดดาวน์โหลด
+   จากหน้า Drive ได้ตามปกติ
+
+   นอกแอป LINE ไม่ต้องอ้อมแบบนี้ ใช้วิธีเดิมซึ่งเร็วกว่าและไม่กินพื้นที่ Drive
+   ═══════════════════════════════════════════════════════════════════ */
+
+/** อยู่ในเบราว์เซอร์ของแอป LINE หรือเปล่า */
+function inLineClient() {
+  try {
+    return Boolean(window.liff && liffReady && liff.isInClient && liff.isInClient());
+  } catch (err) {
+    return false;
+  }
+}
+
+function toBlob(data, mimeType) {
+  if (data instanceof Blob) return data;
+  return new Blob([data], { type: mimeType || 'application/octet-stream' });
+}
+
+async function toBytes(data) {
+  if (data instanceof Blob) return new Uint8Array(await data.arrayBuffer());
+  if (data instanceof Uint8Array) return data;
+  return new Uint8Array(data);
+}
+
+/** ดาวน์โหลดตรงแบบเดิม ใช้เมื่ออยู่นอกแอป LINE หรือเมื่อทางอ้อมไปไม่รอด */
+function saveDirect(data, filename, mimeType) {
+  const url = URL.createObjectURL(toBlob(data, mimeType));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+window.LineFile = {
+  inClient: inLineClient,
+
+  /**
+   * ส่งไฟล์ถึงมือผู้ใช้ด้วยวิธีที่ได้ผลจริงในสภาพแวดล้อมนั้น
+   *
+   * item = { data (Blob/Uint8Array), filename, title, pageCount, mimeType, onProgress }
+   * คืน 'saved'    ดาวน์โหลดตรงตามปกติ
+   *     'drive'    อัปขึ้น Drive แล้วเปิดในเบราว์เซอร์จริงให้แล้ว
+   *     'fallback' อยู่ในแอป LINE แต่ไปทาง Drive ไม่ได้ จึงลองดาวน์โหลดตรงแทน
+   */
+  async save(item) {
+    const filename = String(item.filename || 'เอกสาร').replace(/[\\/:*?"<>|]/g, '-');
+    const mimeType = item.mimeType || 'application/pdf';
+
+    // นอกแอป LINE ใช้วิธีเดิม ตรงไปตรงมาและไม่ต้องพึ่งเซิร์ฟเวอร์
+    if (!inLineClient()) {
+      saveDirect(item.data, filename, mimeType);
+      return 'saved';
+    }
+
+    const cloudReady = typeof cloudEnabled === 'function' && cloudEnabled();
+    if (!cloudReady) {
+      saveDirect(item.data, filename, mimeType);
+      toast('ถ้าไม่ได้ไฟล์ ให้กดปุ่ม ⋯ มุมขวาบน แล้วเลือก "เปิดในเบราว์เซอร์"', 'info');
+      return 'fallback';
+    }
+
+    try {
+      if (item.onProgress) item.onProgress();
+
+      const up = await uploadBytesToDrive({
+        bytes: await toBytes(item.data),
+        filename,
+        title: item.title,
+        pageCount: item.pageCount,
+        mimeType
+      });
+
+      if (!up.viewUrl) throw new Error('เซิร์ฟเวอร์ไม่ได้คืนลิงก์ไฟล์');
+
+      liff.openWindow({ url: up.viewUrl, external: true });
+
+      toast(up.shared
+        ? 'เปิดไฟล์ในเบราว์เซอร์แล้ว กดดาวน์โหลดที่หน้า Drive ได้เลย'
+        : 'เปิดไฟล์ในเบราว์เซอร์แล้ว ถ้าเจอหน้าขอสิทธิ์ ให้ตั้ง SHARE_WITH_ANYONE เป็น true', 'info');
+
+      return 'drive';
+    } catch (err) {
+      console.warn('ดาวน์โหลดผ่าน Drive ไม่สำเร็จ ถอยไปใช้วิธีเดิม', err);
+      saveDirect(item.data, filename, mimeType);
+      toast('ถ้าไม่ได้ไฟล์ ให้กดปุ่ม ⋯ มุมขวาบน แล้วเลือก "เปิดในเบราว์เซอร์"', 'info');
+      return 'fallback';
+    }
+  }
+};
 
 window.LineShare = {
   /** ส่งได้ครั้งละกี่ไฟล์ */

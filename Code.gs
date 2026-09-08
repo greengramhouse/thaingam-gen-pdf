@@ -164,15 +164,23 @@ function saveDocument(body) {
   let fileUrl = body.fileUrl || '';
   let fileId = body.fileId || '';
 
+  // เปิดให้ผู้ที่มีลิงก์เข้าถึงได้หรือไม่ ฝั่งเว็บใช้ตัดสินใจว่าจะเตือนผู้ใช้ไหม
+  let shared = false;
+
   // อัปโหลดก่อนแล้วค่อยจับล็อก การอัปไฟล์ใหญ่กินเวลาหลายวินาที
   // ถ้าถือล็อกคร่อมไว้ด้วย เครื่องอื่นที่รออยู่จะรอจนหมดเวลา 20 วินาที
   if (body.pdfBase64) {
-    const filename = body.filename || ('รับหนังสือ_' + nowStamp() + '.pdf');
-    const blob = Utilities.newBlob(Utilities.base64Decode(body.pdfBase64), 'application/pdf', filename);
+    const filename = body.filename || ('เอกสาร_' + nowStamp() + '.pdf');
+
+    // ปกติเป็น PDF แต่ปุ่มดาวน์โหลดในแอป LINE ฝากไฟล์ zip มาได้ด้วย
+    // ให้ฝั่งเว็บระบุชนิดไฟล์เองได้ ไม่ระบุก็ถือว่าเป็น PDF ตามเดิม
+    const mimeType = body.mimeType || 'application/pdf';
+    const blob = Utilities.newBlob(Utilities.base64Decode(body.pdfBase64), mimeType, filename);
     const file = getFolder().createFile(blob);
 
     if (CONFIG.SHARE_WITH_ANYONE) {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      shared = true;
     }
 
     fileUrl = file.getUrl();
@@ -181,7 +189,7 @@ function saveDocument(body) {
 
   // อัปขึ้น Drive อย่างเดียว ไม่ต้องแตะชีตเลย
   if (body.saveToSheet === false) {
-    return { ok: true, fileUrl: fileUrl, fileId: fileId, row: 0, docId: docId };
+    return { ok: true, fileUrl: fileUrl, fileId: fileId, row: 0, docId: docId, shared: shared };
   }
 
   // ล็อกคร่อมทั้งอ่านและเขียน ไม่ใช่แค่ตอนเขียน มิฉะนั้นสองเครื่องที่แก้แถว

@@ -256,6 +256,33 @@
     });
   }
 
+  /**
+   * ส่งไฟล์ที่รวมแล้วถึงมือผู้ใช้ คืน Promise ของวิธีที่ใช้จริง
+   * ในแอป LINE จะอ้อมผ่าน Drive ให้เอง เพราะดาวน์โหลดตรงใช้ไม่ได้ในนั้น
+   */
+  function deliverMerged(bytes, filename, pages) {
+    var blob = new Blob([bytes], { type: 'application/pdf' });
+
+    if (window.LineFile) {
+      return window.LineFile.save({
+        data: blob,
+        filename: filename,
+        mimeType: 'application/pdf',
+        title: filename.replace(/\.pdf$/i, ''),
+        pageCount: pages,
+        onProgress: function () { showStatus('กำลังอัปโหลดเพื่อเปิดในเบราว์เซอร์...', true); }
+      });
+    }
+
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    return Promise.resolve('saved');
+  }
+
   /** ชื่อไฟล์ผลลัพธ์ อิงจากไฟล์แรกที่เลือกไว้ จะได้สื่อความกว่า merged.pdf */
   function mergedFilename() {
     var first = mergeFiles[0] ? mergeFiles[0].name.replace(/\.pdf$/i, '') : 'เอกสาร';
@@ -276,16 +303,15 @@
     showStatus('กำลังรวมไฟล์ PDF...', true);
     doMergeBtn.disabled = true;
 
-    buildMergedBytes().then(function (bytes) {
-      var blob = new Blob([bytes], { type: 'application/pdf' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = mergedFilename();
-      a.click();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    var count = mergeFiles.length;
+    var pages = totalPages();
 
-      showStatus('รวมไฟล์เสร็จแล้ว (' + mergeFiles.length + ' ไฟล์, ' + totalPages() + ' หน้า) ✓', false);
+    buildMergedBytes().then(function (bytes) {
+      return deliverMerged(bytes, mergedFilename(), pages);
+    }).then(function (how) {
+      showStatus(how === 'drive'
+        ? 'รวมไฟล์แล้วเปิดในเบราว์เซอร์ให้ กดดาวน์โหลดต่อได้เลย ✓'
+        : 'รวมไฟล์เสร็จแล้ว (' + count + ' ไฟล์, ' + pages + ' หน้า) ✓', false);
     }).catch(function (err) {
       console.error(err);
       showStatus('เกิดข้อผิดพลาด: ' + err.message, false, true);
