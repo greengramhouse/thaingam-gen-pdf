@@ -11,7 +11,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 /** ต้องตรงกับค่าใน liff-share.js */
-const MAIN_LIFF_ID = '1660731301-JRVEEAmW';
+const MAIN_LIFF_ID = '1660731301-K6sl2CfI';
 const PAGE_LIFF_ID = '';        // ใส่เมื่อสร้าง LIFF แยกให้หน้านี้โดยเฉพาะ
 
 const LIFF_ID = PAGE_LIFF_ID || MAIN_LIFF_ID;
