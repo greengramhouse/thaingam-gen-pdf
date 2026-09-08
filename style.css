@@ -218,11 +218,62 @@ body {
   padding: 1.5rem;
   box-shadow: 0 24px 60px -20px rgba(11, 21, 42, .55);
   animation: cardIn .18s ease-out;
+
+  /* กล่องเตี้ยที่เนื้อหายาวเกินจอ ต้องเลื่อนในตัวเองได้ ไม่งั้นปุ่มล่างจะกดไม่ถึง */
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ══ กล่องแบบแผ่นเต็ม ══
+   กล่องจัดการ PDF วางเนื้อหาเป็นคอลัมน์แล้วให้ตรงกลางเลื่อนเอง (flex-1 + overflow)
+   ลูกที่เป็น flex-1 จะได้พื้นที่ก็ต่อเมื่อ "พ่อมีความสูงจริง" ถ้าใส่แค่ max-height
+   กล่องจะสูงเท่าเนื้อหา แล้วช่องเลื่อนตรงกลางถูกบีบจนเหลือเกือบศูนย์
+   จึงต้องกำหนด height ให้ชัด ๆ ตรงนี้ */
+.modal-sheet {
+  height: min(88dvh, 46rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;             /* ให้ลูกข้างในเลื่อน ไม่ใช่ตัวการ์ด */
 }
 
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(8px) scale(.985); }
   to   { opacity: 1; transform: none; }
+}
+
+/* ── มือถือ: กล่องจัดการ PDF กลายเป็นแผ่นเต็มจอ ─────────────────── */
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .modal-card {
+    border-radius: 0;
+    padding: 1rem;
+    max-height: 100dvh;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .modal-sheet {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  /* กล่องเตี้ย ๆ ไม่ต้องยืดเต็มจอ ให้เกาะบนแล้วสูงตามเนื้อหา */
+  .modal-card:not(.modal-sheet) {
+    align-self: flex-start;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+}
+
+/* ทุกช่องที่เลื่อนได้ในกล่อง ไม่ให้ลากทะลุไปเลื่อนหน้าข้างหลัง */
+.modal-backdrop .overflow-y-auto,
+.modal-backdrop .overflow-auto {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── หน้ากระดาษในพื้นที่ทำงาน ───────────────────────────────────── */

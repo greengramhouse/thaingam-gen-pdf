@@ -887,6 +887,102 @@ async function doShareCard() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   แชร์ไฟล์จากกล่องแยกหน้าและกล่องรวมไฟล์
+
+   สองกล่องนั้นไม่ได้ทำงานบน canvas ของหน้าทำงาน จึงส่ง "ไบต์ของ PDF"
+   ที่สร้างเสร็จแล้วเข้ามาตรง ๆ ที่นี่รับหน้าที่อัปขึ้น Drive แล้วประกอบ
+   เป็นการ์ดใบเดียวกับที่หน้าทำงานส่ง ผู้รับจึงเห็นหน้าตาเหมือนกันหมด
+
+   ส่งได้ครั้งละไม่เกิน MESSAGE_MAX ใบตามโควตาของ LINE ถ้าแยกเป็นหลายช่วง
+   เกินจำนวนนั้น กล่องแยกหน้าจะเตือนแล้วให้ดาวน์โหลดเป็น zip แทน
+   ═══════════════════════════════════════════════════════════════════ */
+
+/** แปลงไบต์เป็น base64 ทีละก้อน กัน call stack ล้นตอนไฟล์ใหญ่ */
+function bytesToBase64(bytes) {
+  const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const CHUNK = 0x8000;
+  let binary = '';
+  for (let i = 0; i < view.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, view.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+/** อัปไฟล์หนึ่งก้อนขึ้น Drive แล้วคืนก้อนข้อมูลการ์ดพร้อมลิงก์ปุ่มส่งต่อ */
+async function uploadBytesForShare(item) {
+  const filename = String(item.filename || 'เอกสาร.pdf').replace(/[\\/:*?"<>|]/g, '-');
+  const info = {
+    title: (item.title || filename.replace(/\.pdf$/i, '')).trim(),
+    pageCount: item.pageCount || 0,
+    date: new Date().toISOString().slice(0, 10)
+  };
+
+  const out = await cloudPost('saveDocument', {
+    data: info,
+    saveToSheet: false,
+    pdfBase64: bytesToBase64(item.bytes),
+    filename
+  });
+
+  const viewUrl = out.fileId
+    ? `https://drive.google.com/file/d/${out.fileId}/view?usp=sharing`
+    : (out.fileUrl || '');
+
+  const payload = FlexDoc.payloadFromDoc(info, {
+    school: currentSchool(),
+    pdfUrl: viewUrl,
+    fileId: out.fileId || ''
+  });
+
+  const forward = await FlexDoc.forwardUrl(payload, FORWARD_BASE);
+  return { payload, forwardUrl: forward.url };
+}
+
+window.LineShare = {
+  /** ส่งได้ครั้งละกี่ไฟล์ */
+  maxFiles: MESSAGE_MAX,
+
+  /** ข้อความบอกเหตุที่แชร์ไม่ได้ คืนค่าว่างแปลว่าพร้อมแชร์ */
+  blockReason() { return shareBlockReason(); },
+  isReady() { return !shareBlockReason(); },
+
+  /**
+   * items = [{ bytes, filename, title, pageCount }]
+   * onProgress(ทำถึงไฟล์ที่, ทั้งหมด) เรียกก่อนอัปโหลดแต่ละไฟล์
+   * คืน true เมื่อส่งสำเร็จ
+   */
+  async shareFiles(items, onProgress) {
+    const blocked = shareBlockReason();
+    if (blocked) { toast(blocked, 'error'); return false; }
+
+    const list = (items || []).filter((it) => it && it.bytes);
+    if (!list.length) { toast('ยังไม่มีไฟล์ให้แชร์', 'error'); return false; }
+    if (list.length > MESSAGE_MAX) {
+      toast(`LINE ส่งได้ครั้งละไม่เกิน ${thai(MESSAGE_MAX)} ไฟล์`, 'error');
+      return false;
+    }
+
+    const messages = [];
+    for (let i = 0; i < list.length; i++) {
+      if (onProgress) onProgress(i + 1, list.length);
+      const upload = await uploadBytesForShare(list[i]);
+      messages.push(FlexDoc.buildFlex(FlexDoc.modelFrom(upload.payload), {
+        forwardUrl: upload.forwardUrl,
+        theme: shareTheme
+      }));
+    }
+
+    const result = await liff.shareTargetPicker(messages, { isMultiple: true });
+    if (!result) { toast('ยกเลิกการแชร์', 'info'); return false; }
+
+    toast(list.length > 1
+      ? `ส่ง ${thai(list.length)} ไฟล์เข้า LINE แล้ว`
+      : 'ส่งเอกสารเข้า LINE แล้ว');
+    return true;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════════
    ผูกปุ่ม
    ═══════════════════════════════════════════════════════════════════ */
 el('gate-login-btn').addEventListener('click', () => {

@@ -591,7 +591,7 @@
 
 <!-- ══════════════════════════ แชร์เข้า LINE ══════════════════════════ -->
 <div id="shareModal" class="modal-backdrop hidden">
-  <div class="modal-card max-w-md max-h-[92dvh] overflow-y-auto">
+  <div class="modal-card max-w-md">
     <div class="flex items-start justify-between mb-1">
       <div>
         <h2 class="font-display font-semibold text-lg">แชร์เอกสารเข้า LINE</h2>
@@ -739,7 +739,7 @@
 
 <!-- ══════════════════════════ แยก PDF ══════════════════════════ -->
 <div id="splitPdfModal" class="modal-backdrop hidden">
-  <div class="modal-card w-full max-w-3xl max-h-[92dvh] flex flex-col">
+  <div class="modal-card modal-sheet w-full max-w-3xl flex flex-col">
 
     <!-- Header -->
     <div class="shrink-0 flex items-start justify-between mb-1">
@@ -767,21 +767,22 @@
 
     <!-- Toolbar (shown after file loaded) -->
     <div id="splitToolbar" class="hidden shrink-0 flex flex-wrap items-center gap-2 mt-3 py-3 border-b border-desk-200">
-      <span id="splitFileName" class="text-sm font-medium text-ink-700 truncate flex-1 min-w-0"></span>
-      <div class="flex items-center gap-2 shrink-0">
+      <!-- จอแคบให้ชื่อไฟล์กินเต็มบรรทัดบน ปุ่มลงไปอยู่บรรทัดล่าง ไม่งั้นชื่อถูกบีบจนเหลือสามตัวอักษร -->
+      <span id="splitFileName" class="w-full sm:w-auto sm:flex-1 min-w-0 truncate text-sm font-medium text-ink-700"></span>
+      <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
         <button id="splitSelectAll" type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 border border-desk-300
-                       rounded-lg px-3 py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-600 border border-desk-300
+                       rounded-lg px-2.5 sm:px-3 py-2 sm:py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
           <i class="fa-solid fa-check-double"></i> เลือกทั้งหมด
         </button>
         <button id="splitClearAll" type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 border border-desk-300
-                       rounded-lg px-3 py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-600 border border-desk-300
+                       rounded-lg px-2.5 sm:px-3 py-2 sm:py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
           <i class="fa-solid fa-xmark"></i> ล้างทั้งหมด
         </button>
         <button id="splitChangeFile" type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 border border-desk-300
-                       rounded-lg px-3 py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-600 border border-desk-300
+                       rounded-lg px-2.5 sm:px-3 py-2 sm:py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
           <i class="fa-solid fa-folder-open"></i> เปลี่ยนไฟล์
         </button>
       </div>
@@ -859,14 +860,23 @@
     </div>
 
     <!-- Footer -->
-    <div class="shrink-0 flex items-center justify-between gap-3 mt-4 pt-4 border-t border-desk-200">
+    <div class="shrink-0 mt-4 pt-4 border-t border-desk-200
+                flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
       <p id="splitFooterNote" class="text-xs text-ink-400">
         เลือก <span class="font-semibold text-ink-700">0</span>
         จาก <span class="font-semibold text-ink-700">0</span> หน้า
       </p>
-      <div class="flex gap-2">
-        <button type="button" id="cancelSplitBtn" class="btn-ghost">ปิด</button>
-        <button type="button" id="doSplitBtn" class="btn-primary" disabled>
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- บนมือถือปุ่มปิดซ้ำกับกากบาทมุมบน จึงเก็บไว้ให้จอกว้าง -->
+        <button type="button" id="cancelSplitBtn" class="btn-ghost hidden sm:inline-flex">ปิด</button>
+        <button type="button" id="splitShareBtn"
+                class="hidden flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 py-3 sm:py-2.5
+                       font-semibold text-white whitespace-nowrap transition-opacity hover:opacity-90 disabled:opacity-50"
+                style="background:#06C755" disabled>
+          <i class="fa-brands fa-line text-lg"></i>
+          <span id="splitShareLabel">แชร์เข้า LINE</span>
+        </button>
+        <button type="button" id="doSplitBtn" class="btn-primary flex-1 sm:flex-none whitespace-nowrap" disabled>
           <i class="fa-solid fa-scissors"></i>
           <span id="doSplitLabel">ดาวน์โหลด PDF</span>
         </button>
@@ -877,7 +887,7 @@
 </div>
 <!-- ══════════════════════════ รวม PDF ══════════════════════════ -->
 <div id="mergePdfModal" class="modal-backdrop hidden">
-  <div class="modal-card w-full max-w-3xl max-h-[92dvh] flex flex-col">
+  <div class="modal-card modal-sheet w-full max-w-3xl flex flex-col">
 
     <!-- Header -->
     <div class="shrink-0 flex items-start justify-between mb-1">
@@ -911,13 +921,13 @@
     <!-- Add More -->
     <div id="mergeAddMoreRow" class="hidden shrink-0 mt-2 flex items-center gap-2">
       <button id="mergeAddMoreBtn" type="button"
-              class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 border border-desk-300
-                     rounded-lg px-3 py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+              class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-600 border border-desk-300
+                     rounded-lg px-2.5 sm:px-3 py-2 sm:py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
         <i class="fa-solid fa-plus"></i> เพิ่มไฟล์
       </button>
       <button id="mergeClearAll" type="button"
-              class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 border border-desk-300
-                     rounded-lg px-3 py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+              class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-600 border border-desk-300
+                     rounded-lg px-2.5 sm:px-3 py-2 sm:py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
         <i class="fa-solid fa-xmark"></i> ล้างทั้งหมด
       </button>
       <input type="file" id="mergeAddFileInput" class="hidden" accept="application/pdf" multiple />
@@ -930,14 +940,22 @@
     </div>
 
     <!-- Footer -->
-    <div class="shrink-0 flex items-center justify-between gap-3 mt-4 pt-4 border-t border-desk-200">
+    <div class="shrink-0 mt-4 pt-4 border-t border-desk-200
+                flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
       <p class="text-xs text-ink-400">
         <span id="mergeFileCount" class="font-semibold text-ink-700">0</span> ไฟล์ ·
         <span id="mergeTotalPages" class="font-semibold text-ink-700">0</span> หน้า
       </p>
-      <div class="flex gap-2">
-        <button type="button" id="cancelMergeBtn" class="btn-ghost">ปิด</button>
-        <button type="button" id="doMergeBtn" class="btn-primary" disabled>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="cancelMergeBtn" class="btn-ghost hidden sm:inline-flex">ปิด</button>
+        <button type="button" id="mergeShareBtn"
+                class="hidden flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 py-3 sm:py-2.5
+                       font-semibold text-white whitespace-nowrap transition-opacity hover:opacity-90 disabled:opacity-50"
+                style="background:#06C755" disabled>
+          <i class="fa-brands fa-line text-lg"></i>
+          <span id="mergeShareLabel">แชร์เข้า LINE</span>
+        </button>
+        <button type="button" id="doMergeBtn" class="btn-primary flex-1 sm:flex-none whitespace-nowrap" disabled>
           <i class="fa-solid fa-layer-group"></i>
           <span id="doMergeLabel">ดาวน์โหลด PDF</span>
         </button>

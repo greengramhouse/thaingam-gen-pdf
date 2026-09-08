@@ -30,6 +30,7 @@
   var totalPagesEl  = document.getElementById('mergeTotalPages');
   var doMergeBtn    = document.getElementById('doMergeBtn');
   var doMergeLabel  = document.getElementById('doMergeLabel');
+  var shareBtn      = document.getElementById('mergeShareBtn');
 
   if (!modal || !openBtn) return;
 
@@ -39,6 +40,7 @@
   openBtn.addEventListener('click', function () {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    updateFooter();   // LIFF เพิ่งพร้อมทีหลังได้ ปุ่มแชร์จึงเช็คสถานะใหม่ทุกครั้งที่เปิด
   });
   closeBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
@@ -130,12 +132,13 @@
 
     mergeFiles.forEach(function (f, idx) {
       var row = document.createElement('div');
-      row.className = 'merge-file-row flex items-center gap-3 bg-white border border-desk-200 rounded-xl px-4 py-3 transition-all';
+      row.className = 'merge-file-row flex items-center gap-2 sm:gap-3 bg-white border border-desk-200 rounded-xl px-3 sm:px-4 py-3 transition-all';
       row.dataset.idx = idx;
       row.draggable = true;
 
       row.innerHTML =
-        '<span class="merge-drag-handle shrink-0 cursor-grab text-ink-300 hover:text-ink-500 active:cursor-grabbing">' +
+        // ที่จับลากใช้ได้เฉพาะเมาส์ บนมือถือจึงซ่อนไว้ แล้วใช้ปุ่มลูกศรแทน
+        '<span class="merge-drag-handle hidden sm:block shrink-0 cursor-grab text-ink-300 hover:text-ink-500 active:cursor-grabbing">' +
           '<i class="fa-solid fa-grip-vertical"></i>' +
         '</span>' +
         '<span class="shrink-0 w-8 h-8 rounded-lg bg-ink-100 flex items-center justify-center text-ink-500">' +
@@ -145,14 +148,14 @@
           '<p class="text-sm font-medium text-ink-900 truncate">' + escHtml(f.name) + '</p>' +
           '<p class="text-xs text-ink-400">' + f.pageCount + ' หน้า</p>' +
         '</div>' +
-        '<div class="flex items-center gap-1 shrink-0">' +
-          '<button type="button" class="merge-move-up w-7 h-7 rounded-lg hover:bg-desk-100 text-ink-400 hover:text-ink-700 transition-colors" title="เลื่อนขึ้น">' +
+        '<div class="flex items-center gap-0.5 sm:gap-1 shrink-0">' +
+          '<button type="button" class="merge-move-up w-9 h-9 sm:w-7 sm:h-7 rounded-lg hover:bg-desk-100 text-ink-400 hover:text-ink-700 transition-colors" title="เลื่อนขึ้น">' +
             '<i class="fa-solid fa-chevron-up text-xs"></i>' +
           '</button>' +
-          '<button type="button" class="merge-move-down w-7 h-7 rounded-lg hover:bg-desk-100 text-ink-400 hover:text-ink-700 transition-colors" title="เลื่อนลง">' +
+          '<button type="button" class="merge-move-down w-9 h-9 sm:w-7 sm:h-7 rounded-lg hover:bg-desk-100 text-ink-400 hover:text-ink-700 transition-colors" title="เลื่อนลง">' +
             '<i class="fa-solid fa-chevron-down text-xs"></i>' +
           '</button>' +
-          '<button type="button" class="merge-remove w-7 h-7 rounded-lg hover:bg-seal-500/10 text-ink-400 hover:text-seal-500 transition-colors" title="ลบ">' +
+          '<button type="button" class="merge-remove w-9 h-9 sm:w-7 sm:h-7 rounded-lg hover:bg-seal-500/10 text-ink-400 hover:text-seal-500 transition-colors" title="ลบ">' +
             '<i class="fa-solid fa-xmark text-xs"></i>' +
           '</button>' +
         '</div>';
@@ -222,19 +225,20 @@
     var has = count >= 2;
     doMergeBtn.disabled = !has;
     doMergeLabel.textContent = has
-      ? 'รวมแล้วดาวน์โหลด (' + pages + ' หน้า)'
+      ? 'ดาวน์โหลด · ' + pages + ' หน้า'
       : 'ดาวน์โหลด PDF';
+
+    if (shareBtn) {
+      var lineReady = window.LineShare && window.LineShare.isReady();
+      shareBtn.classList.toggle('hidden', !lineReady);
+      shareBtn.classList.toggle('inline-flex', !!lineReady);
+      shareBtn.disabled = !has;
+    }
   }
 
-  /* ══════════════════════════════════════════
-     รวมและดาวน์โหลด
-  ══════════════════════════════════════════ */
-  doMergeBtn.addEventListener('click', function () {
-    if (mergeFiles.length < 2) return;
-    showStatus('กำลังรวมไฟล์ PDF...', true);
-    doMergeBtn.disabled = true;
-
-    PDFLib.PDFDocument.create().then(function (newDoc) {
+  /** รวมไฟล์ทั้งหมดเป็นก้อนเดียว ใช้ร่วมกันทั้งปุ่มดาวน์โหลดและปุ่มแชร์ */
+  function buildMergedBytes() {
+    return PDFLib.PDFDocument.create().then(function (newDoc) {
       var chain = Promise.resolve();
       mergeFiles.forEach(function (f) {
         chain = chain.then(function () {
@@ -248,25 +252,74 @@
         });
       });
       return chain.then(function () { return newDoc.save(); });
-    }).then(function (bytes) {
+    });
+  }
+
+  /** ชื่อไฟล์ผลลัพธ์ อิงจากไฟล์แรกที่เลือกไว้ จะได้สื่อความกว่า merged.pdf */
+  function mergedFilename() {
+    var first = mergeFiles[0] ? mergeFiles[0].name.replace(/\.pdf$/i, '') : 'เอกสาร';
+    return (first + '_รวม' + mergeFiles.length + 'ไฟล์.pdf').replace(/[\\/:*?"<>|]/g, '-');
+  }
+
+  function totalPages() {
+    var pages = 0;
+    mergeFiles.forEach(function (f) { pages += f.pageCount; });
+    return pages;
+  }
+
+  /* ══════════════════════════════════════════
+     รวมและดาวน์โหลด
+  ══════════════════════════════════════════ */
+  doMergeBtn.addEventListener('click', function () {
+    if (mergeFiles.length < 2) return;
+    showStatus('กำลังรวมไฟล์ PDF...', true);
+    doMergeBtn.disabled = true;
+
+    buildMergedBytes().then(function (bytes) {
       var blob = new Blob([bytes], { type: 'application/pdf' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = 'merged.pdf';
+      a.download = mergedFilename();
       a.click();
       setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
 
-      var pages = 0;
-      mergeFiles.forEach(function (f) { pages += f.pageCount; });
-      showStatus('รวมไฟล์เสร็จแล้ว (' + mergeFiles.length + ' ไฟล์, ' + pages + ' หน้า) ✓', false);
+      showStatus('รวมไฟล์เสร็จแล้ว (' + mergeFiles.length + ' ไฟล์, ' + totalPages() + ' หน้า) ✓', false);
     }).catch(function (err) {
       console.error(err);
       showStatus('เกิดข้อผิดพลาด: ' + err.message, false, true);
-    }).finally(function () {
-      doMergeBtn.disabled = mergeFiles.length < 2;
-    });
+    }).finally(updateFooter);
   });
+
+  /* ── แชร์ไฟล์ที่รวมแล้วเข้า LINE ── */
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function () {
+      if (mergeFiles.length < 2 || !window.LineShare) return;
+
+      shareBtn.disabled = true;
+      doMergeBtn.disabled = true;
+      showStatus('กำลังรวมไฟล์ PDF...', true);
+
+      var filename = mergedFilename();
+
+      buildMergedBytes().then(function (bytes) {
+        return window.LineShare.shareFiles([{
+          bytes: bytes,
+          filename: filename,
+          title: filename.replace(/\.pdf$/i, ''),
+          pageCount: totalPages()
+        }], function () {
+          showStatus('กำลังอัปโหลดขึ้น Drive...', true);
+        });
+      }).then(function (sent) {
+        if (sent) showStatus('ส่งเข้า LINE แล้ว ✓', false);
+        else hideStatus();
+      }).catch(function (err) {
+        console.error(err);
+        showStatus('แชร์ไม่สำเร็จ: ' + err.message, false, true);
+      }).finally(updateFooter);
+    });
+  }
 
   /* ══════════════════════════════════════════
      helpers

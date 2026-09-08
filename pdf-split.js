@@ -48,6 +48,8 @@
   var footerNote    = document.getElementById('splitFooterNote');
   var doSplitBtn      = document.getElementById('doSplitBtn');
   var doSplitLabel    = document.getElementById('doSplitLabel');
+  var shareBtn        = document.getElementById('splitShareBtn');
+  var shareLabel      = document.getElementById('splitShareLabel');
 
   if (!modal || !openBtn) return;
 
@@ -60,6 +62,7 @@
   function openModal() {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    updateFooter();   // LIFF เพิ่งพร้อมทีหลังได้ ปุ่มแชร์จึงเช็คสถานะใหม่ทุกครั้งที่เปิด
   }
   function closeModal() {
     modal.classList.add('hidden');
@@ -328,26 +331,31 @@
       row.className = 'rounded-xl border px-3 py-2.5 ' +
         (check.error ? 'border-seal-500/40 bg-seal-500/5' : 'border-desk-300 bg-white');
 
+      // จอแคบให้ชื่อไฟล์ตกไปบรรทัดล่าง ไม่งั้นเหลือที่ไม่กี่สิบพิกเซลจนอ่านไม่ออก
+      var inputCls = 'w-[4.5rem] sm:w-20 rounded-lg border border-desk-300 bg-white px-2 py-2 sm:py-1.5' +
+                     ' text-sm text-center text-ink-900 focus:outline-none focus:border-ink-500' +
+                     ' focus:ring-4 focus:ring-ink-500/10';
+
       row.innerHTML =
-        '<div class="flex items-center gap-2">' +
-          '<span class="shrink-0 text-xs text-ink-500 w-16">ช่วงที่ ' + (index + 1) + '</span>' +
-          '<input type="number" min="1" max="' + splitTotalPages + '" value="' + escapeAttr(range.from) + '"' +
+        '<div class="flex flex-wrap items-center gap-x-2 gap-y-1.5">' +
+          '<span class="shrink-0 text-xs text-ink-500 w-14 sm:w-16">ช่วงที่ ' + (index + 1) + '</span>' +
+          '<input type="number" inputmode="numeric" min="1" max="' + splitTotalPages + '" value="' + escapeAttr(range.from) + '"' +
                 ' data-range-field="from" aria-label="หน้าเริ่มของช่วงที่ ' + (index + 1) + '"' +
-                ' class="w-20 rounded-lg border border-desk-300 bg-white px-2 py-1.5 text-sm text-center' +
-                ' text-ink-900 focus:outline-none focus:border-ink-500 focus:ring-4 focus:ring-ink-500/10" />' +
+                ' class="' + inputCls + '" />' +
           '<span class="text-ink-400 text-sm">ถึง</span>' +
-          '<input type="number" min="1" max="' + splitTotalPages + '" value="' + escapeAttr(range.to) + '"' +
+          '<input type="number" inputmode="numeric" min="1" max="' + splitTotalPages + '" value="' + escapeAttr(range.to) + '"' +
                 ' data-range-field="to" aria-label="หน้าจบของช่วงที่ ' + (index + 1) + '"' +
-                ' class="w-20 rounded-lg border border-desk-300 bg-white px-2 py-1.5 text-sm text-center' +
-                ' text-ink-900 focus:outline-none focus:border-ink-500 focus:ring-4 focus:ring-ink-500/10" />' +
-          '<span class="flex-1 min-w-0 truncate text-xs ' + (check.error ? 'text-seal-500' : 'text-ink-400') + '">' +
+                ' class="' + inputCls + '" />' +
+          '<button type="button" data-range-remove="1" aria-label="ลบช่วงที่ ' + (index + 1) + '"' +
+                ' class="ml-auto shrink-0 w-9 h-9 sm:w-8 sm:h-8 rounded-lg text-ink-400' +
+                ' hover:bg-seal-500/10 hover:text-seal-500 transition-colors">' +
+            '<i class="fa-regular fa-trash-can text-sm"></i>' +
+          '</button>' +
+          '<span class="order-last w-full sm:order-none sm:w-auto sm:flex-1 min-w-0 truncate text-xs ' +
+            (check.error ? 'text-seal-500' : 'text-ink-400') + '">' +
             (check.error ? check.error
               : (check.pages.length ? '→ ' + escapeHtml(rangeFilename(range, check)) : 'ยังไม่ได้กรอก')) +
           '</span>' +
-          '<button type="button" data-range-remove="1" aria-label="ลบช่วงที่ ' + (index + 1) + '"' +
-                ' class="shrink-0 w-8 h-8 rounded-lg text-ink-400 hover:bg-seal-500/10 hover:text-seal-500 transition-colors">' +
-            '<i class="fa-regular fa-trash-can text-sm"></i>' +
-          '</button>' +
         '</div>';
 
       row.querySelectorAll('input[data-range-field]').forEach(function (input) {
@@ -379,8 +387,9 @@
     row.className = 'rounded-xl border px-3 py-2.5 ' +
       (check.error ? 'border-seal-500/40 bg-seal-500/5' : 'border-desk-300 bg-white');
 
-    var note = row.querySelector('span.flex-1');
-    note.className = 'flex-1 min-w-0 truncate text-xs ' + (check.error ? 'text-seal-500' : 'text-ink-400');
+    var note = row.querySelector('span.order-last');
+    note.className = 'order-last w-full sm:order-none sm:w-auto sm:flex-1 min-w-0 truncate text-xs ' +
+      (check.error ? 'text-seal-500' : 'text-ink-400');
     note.textContent = check.error
       ? check.error
       : (check.pages.length ? '→ ' + rangeFilename(range, check) : 'ยังไม่ได้กรอก');
@@ -443,8 +452,10 @@
 
       doSplitBtn.disabled = hasError || !ready.length;
       doSplitLabel.textContent = ready.length > 1
-        ? 'ดาวน์โหลด ZIP (' + ready.length + ' ไฟล์)'
+        ? 'ดาวน์โหลด ZIP (' + ready.length + ')'
         : 'ดาวน์โหลด PDF';
+
+      updateShareButton(hasError ? 0 : ready.length);
       return;
     }
 
@@ -454,8 +465,32 @@
 
     doSplitBtn.disabled = splitSelected.size === 0;
     doSplitLabel.textContent = splitSelected.size
-      ? 'ดาวน์โหลด PDF (' + splitSelected.size + ' หน้า)'
+      ? 'ดาวน์โหลด (' + splitSelected.size + ' หน้า)'
       : 'ดาวน์โหลด PDF';
+
+    updateShareButton(splitSelected.size ? 1 : 0);
+  }
+
+  /**
+   * ปุ่มแชร์โผล่เฉพาะตอนที่ LINE พร้อมใช้จริง
+   * แยกหลายช่วงส่งได้ครั้งละไม่เกินโควตาของ LINE เกินกว่านั้นให้ดาวน์โหลด zip แทน
+   */
+  function updateShareButton(fileCount) {
+    if (!shareBtn) return;
+
+    var lineReady = window.LineShare && window.LineShare.isReady();
+    shareBtn.classList.toggle('hidden', !lineReady);
+    shareBtn.classList.toggle('inline-flex', !!lineReady);
+    if (!lineReady) return;
+
+    var max = window.LineShare.maxFiles;
+    var tooMany = fileCount > max;
+
+    shareBtn.disabled = !fileCount || tooMany;
+    shareBtn.title = tooMany ? 'LINE ส่งได้ครั้งละไม่เกิน ' + max + ' ไฟล์' : '';
+    shareLabel.textContent = fileCount > 1
+      ? 'แชร์ ' + fileCount + ' ไฟล์'
+      : 'แชร์เข้า LINE';
   }
 
   /* ── สร้าง PDF หนึ่งไฟล์จากเลขหน้าที่ให้มา (นับจาก 0) ── */
@@ -484,6 +519,73 @@
     if (splitMode === 'ranges') doSplitRanges();
     else doSplitPages();
   });
+
+  /* ── ปุ่มแชร์เข้า LINE ──
+     สร้างไฟล์ชุดเดียวกับที่จะดาวน์โหลด แล้วส่งเป็นการ์ดใบละไฟล์
+     ไม่ส่งเป็น zip เพราะผู้รับบนมือถือเปิด zip ต่อได้ยาก */
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function () {
+      if (!splitPdfDoc || !window.LineShare) return;
+
+      var jobs = splitMode === 'ranges'
+        ? validRanges().map(function (item) {
+            return {
+              indexes: item.check.pages.map(function (p) { return p - 1; }),
+              filename: rangeFilename(item.range, item.check),
+              pageCount: item.check.pages.length
+            };
+          })
+        : (function () {
+            var idx = Array.from(splitSelected).sort(function (a, b) { return a - b; });
+            if (!idx.length) return [];
+            return [{
+              indexes: idx,
+              filename: splitFileName.replace(/\.pdf$/i, '') + '_split.pdf',
+              pageCount: idx.length
+            }];
+          })();
+
+      if (!jobs.length) return;
+
+      if (jobs.length > window.LineShare.maxFiles) {
+        showStatus('LINE ส่งได้ครั้งละไม่เกิน ' + window.LineShare.maxFiles +
+                   ' ไฟล์ ลดจำนวนช่วงลง หรือกดดาวน์โหลดเป็น zip แทน', false, true);
+        return;
+      }
+
+      shareBtn.disabled = true;
+      doSplitBtn.disabled = true;
+      showStatus('กำลังเตรียมไฟล์สำหรับแชร์...', true);
+
+      var items = [];
+      var chain = Promise.resolve();
+
+      jobs.forEach(function (job) {
+        chain = chain.then(function () {
+          return buildPdfBytes(job.indexes).then(function (bytes) {
+            items.push({
+              bytes: bytes,
+              filename: job.filename,
+              title: job.filename.replace(/\.pdf$/i, ''),
+              pageCount: job.pageCount
+            });
+          });
+        });
+      });
+
+      chain.then(function () {
+        return window.LineShare.shareFiles(items, function (done, total) {
+          showStatus('กำลังอัปโหลดขึ้น Drive (' + done + '/' + total + ')...', true);
+        });
+      }).then(function (sent) {
+        if (sent) showStatus('ส่งเข้า LINE แล้ว ✓', false);
+        else hideStatus();
+      }).catch(function (err) {
+        console.error(err);
+        showStatus('แชร์ไม่สำเร็จ: ' + err.message, false, true);
+      }).finally(updateFooter);
+    });
+  }
 
   function doSplitPages() {
     if (splitSelected.size === 0) return;
