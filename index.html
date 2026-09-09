@@ -290,6 +290,16 @@
       </div>
     </section>
    </div>
+
+   <footer class="pt-10 mt-4 border-t border-ink-100 flex flex-wrap items-center justify-center gap-x-2 gap-y-1
+                  text-xs text-ink-400">
+     <span>พัฒนาโดย</span>
+     <button id="openCreditBtn" type="button"
+             class="inline-flex items-center gap-1.5 font-medium text-ink-600 hover:text-ink-900 transition-colors">
+       <i class="fa-solid fa-code text-[10px]"></i>
+       Gukkghu-dev
+     </button>
+   </footer>
   </div>
 </main>
 
@@ -659,6 +669,136 @@
 
     <div class="flex gap-2 mt-4">
       <button type="button" id="closeHelpBtn" class="btn-primary flex-1">เข้าใจแล้ว</button>
+    </div>
+
+    <p class="text-center text-[11px] text-ink-400 mt-3">
+      พัฒนาโดย
+      <button id="openCreditFromHelpBtn" type="button"
+              class="font-medium text-ink-600 hover:text-ink-900 transition-colors">
+        Gukkghu-dev
+      </button>
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════ เครดิตผู้พัฒนา ══════════════════════════ -->
+<div id="creditModal" class="modal-backdrop hidden">
+  <div class="modal-card credit-card max-w-md !p-0">
+
+    <!-- แถบหัว: ไล่สีเข้ม ให้รูปโปรไฟล์ลอยคร่อมรอยต่อ -->
+    <div class="credit-cover">
+      <button id="closeCreditModal" type="button"
+              class="absolute top-3 right-3 w-8 h-8 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-colors"
+              aria-label="ปิด">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="px-6 pb-6 -mt-12 text-center">
+
+      <!-- รูปผู้พัฒนา
+           ▼▼▼ วาง URL รูปของคุณตรง src ข้างล่างนี้ (ลิงก์ภาพตรง .jpg .png .webp) ▼▼▼
+           ปล่อยว่างไว้ก็ได้ ระบบจะแสดงอักษรย่อ G แทนให้เอง -->
+      <div class="credit-avatar">
+        <span id="credit-initial" class="credit-initial">G</span>
+        <img id="credit-photo" src="" alt="Gukkghu-dev" class="hidden" />
+      </div>
+
+      <h2 class="font-display font-semibold text-xl text-ink-900 mt-3">Gukkghu-dev</h2>
+
+      <p class="credit-badge">
+        <span class="credit-dot"></span>
+        ฟรีแลนซ์ · รับงานพัฒนาเว็บ
+      </p>
+
+      <p class="text-sm text-ink-600 leading-relaxed mt-3 max-w-xs mx-auto">
+        ฉันเป็นฟรีแลนซ์ รับออกแบบและพัฒนาเว็บแอปพลิเคชันตั้งแต่หน้าบ้านถึงหลังบ้าน
+        ยินดีรับงานใหม่ ทักมาคุยกันได้เลยครับ
+      </p>
+
+      <!-- ความเชี่ยวชาญ -->
+      <div class="mt-6 text-left">
+        <p class="credit-heading">ความเชี่ยวชาญ</p>
+
+        <div class="credit-skills">
+          <span class="skill-chip" style="--brand:#E34F26; --tint:rgba(227,79,38,.10)">
+            <i class="fa-brands fa-html5"></i> HTML5
+          </span>
+          <span class="skill-chip" style="--brand:#1572B6; --tint:rgba(21,114,182,.10)">
+            <i class="fa-brands fa-css3-alt"></i> CSS3
+          </span>
+          <span class="skill-chip" style="--brand:#B59410; --tint:rgba(247,223,30,.20)">
+            <i class="fa-brands fa-js"></i> JavaScript
+          </span>
+          <span class="skill-chip" style="--brand:#0891B2; --tint:rgba(6,182,212,.12)">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624C13.666 10.618 15.027 12 18 12c3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C16.335 6.182 14.975 4.8 12 4.8zM6 12c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624C7.666 17.818 9.027 19.2 12 19.2c3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C10.335 13.382 8.975 12 6 12z"/>
+            </svg>
+            Tailwind
+          </span>
+          <span class="skill-chip" style="--brand:#3C873A; --tint:rgba(60,135,58,.10)">
+            <i class="fa-brands fa-node-js"></i> Node.js
+          </span>
+          <span class="skill-chip" style="--brand:#0B96BC; --tint:rgba(97,218,251,.16)">
+            <i class="fa-brands fa-react"></i> React
+          </span>
+          <span class="skill-chip" style="--brand:#111827; --tint:rgba(17,24,39,.07)">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="currentColor"/>
+              <path d="M8.6 16.8V7.2h1.6l5 7.4V7.2h1.3v9.6h-1.5l-5.1-7.6v7.6z" fill="#fff"/>
+            </svg>
+            Next.js
+          </span>
+          <span class="skill-chip" style="--brand:#A6845C; --tint:rgba(198,160,106,.14)">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <ellipse cx="12" cy="13" rx="10.5" ry="8" fill="currentColor" opacity=".22"/>
+              <path d="M12 4.6c5.8 0 10.5 3.8 10.5 8.4S17.8 21.4 12 21.4 1.5 17.6 1.5 13 6.2 4.6 12 4.6z"
+                    fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="8.4" cy="12.4" r="1.15" fill="currentColor"/>
+              <circle cx="15.6" cy="12.4" r="1.15" fill="currentColor"/>
+              <path d="M9.6 15.8c.7.7 1.5 1 2.4 1s1.7-.3 2.4-1"
+                    fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            Bun
+          </span>
+          <span class="skill-chip" style="--brand:#7C3AED; --tint:rgba(124,58,237,.10)">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.5 8.2c0 5.4-4.2 9.6-9.4 9.6-2.6 0-4.4-1.3-4.4-3.2 0-1.8 1.4-3 3.4-3 1.5 0 2.6.8 2.6 1.9 0 .9-.7 1.5-1.6 1.5-.6 0-1-.3-1-.8 0-.4.3-.7.7-.7"
+                    fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M11.1 17.8c-.5 1.7-2 2.9-3.8 2.9-2.2 0-3.8-1.6-3.8-3.7 0-2.4 1.9-4.3 4.4-4.6"
+                    fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <circle cx="17.4" cy="6.4" r="1.1" fill="currentColor"/>
+            </svg>
+            Elysia
+          </span>
+          <span class="skill-chip" style="--brand:#06C755; --tint:rgba(6,199,85,.10)">
+            <i class="fa-brands fa-line"></i> LINE API
+          </span>
+        </div>
+      </div>
+
+      <!-- ติดต่อ -->
+      <div class="mt-6 text-left">
+        <p class="credit-heading">ติดต่องาน</p>
+
+        <div class="flex items-center gap-2">
+          <a href="mailto:waroon01@gmail.com" class="credit-mail">
+            <span class="credit-mail-icon"><i class="fa-solid fa-envelope"></i></span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[11px] text-ink-400 leading-none mb-1">อีเมล</span>
+              <span class="block text-sm font-medium text-ink-900 truncate">waroon01@gmail.com</span>
+            </span>
+          </a>
+          <button id="copyCreditMailBtn" type="button"
+                  class="shrink-0 w-11 h-11 rounded-xl border border-desk-300 text-ink-500
+                         hover:bg-ink-50 hover:border-ink-400 hover:text-ink-700 transition-colors"
+                  title="คัดลอกอีเมล" aria-label="คัดลอกอีเมล">
+            <i class="fa-regular fa-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="button" id="closeCreditBtn" class="btn-primary w-full mt-6">ปิด</button>
     </div>
   </div>
 </div>

@@ -259,6 +259,64 @@ $('openHelpBtnTool').addEventListener('click', openHelp);
 $('closeHelpModal').addEventListener('click', closeHelp);
 $('closeHelpBtn').addEventListener('click', closeHelp);
 
+/* ── กล่องเครดิตผู้พัฒนา ───────────────────────────────────────── */
+const DEV_EMAIL = 'waroon01@gmail.com';
+
+function openCredit() { openSheet($('creditModal')); }
+function closeCredit() { closeSheet($('creditModal')); }
+
+$('openCreditBtn').addEventListener('click', openCredit);
+$('closeCreditModal').addEventListener('click', closeCredit);
+$('closeCreditBtn').addEventListener('click', closeCredit);
+
+// เปิดจากในกล่องวิธีใช้ ต้องปิดกล่องเดิมก่อน ไม่งั้นสองกล่องซ้อนกัน
+$('openCreditFromHelpBtn').addEventListener('click', () => {
+  closeHelp();
+  openCredit();
+});
+
+/**
+ * รูปผู้พัฒนายังไม่ได้ใส่ก็ให้ขึ้นอักษรย่อไปก่อน
+ * ลิงก์เสียก็กลับไปใช้อักษรย่อเหมือนกัน ดีกว่าโชว์ไอคอนภาพแตกกลางการ์ด
+ */
+(function initCreditPhoto() {
+  const photo = $('credit-photo');
+  const initial = $('credit-initial');
+  if (!photo || !initial) return;
+
+  const src = (photo.getAttribute('src') || '').trim();
+  if (!src) return;
+
+  const showPhoto = () => {
+    photo.classList.remove('hidden');
+    initial.classList.add('hidden');
+  };
+  const showInitial = () => {
+    photo.classList.add('hidden');
+    initial.classList.remove('hidden');
+  };
+
+  photo.onload = showPhoto;
+  photo.onerror = showInitial;
+
+  // รูปที่อยู่ในแคชอยู่แล้วโหลดเสร็จก่อนสคริปต์นี้ทำงาน onload จึงไม่ยิงอีก
+  if (photo.complete) {
+    if (photo.naturalWidth > 0) showPhoto();
+    else showInitial();
+  }
+})();
+
+/** คัดลอกอีเมล เผื่อเปิดในแอปที่กด mailto ไม่ขึ้น */
+$('copyCreditMailBtn').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(DEV_EMAIL);
+    toast('คัดลอกอีเมลแล้ว');
+  } catch (err) {
+    console.warn('คัดลอกอีเมลไม่สำเร็จ', err);
+    toast(`คัดลอกไม่ได้ อีเมลคือ ${DEV_EMAIL}`, 'info');
+  }
+});
+
 loadOrgCache();
 applyOrgSettings();
 
