@@ -126,10 +126,14 @@ function loadFabricImage(url) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ตั้งค่าชื่อและโลโก้หน่วยงาน
+   ชื่อและโลโก้หน่วยงาน
 
-   เก็บไว้ใน localStorage ของเครื่องนี้ ทุกจุดที่แสดงชื่อหน่วยงานและโลโก้
-   ทั้งหัวเว็บ หน้าเข้าสู่ระบบ และการ์ดที่แชร์เข้า LINE อ่านจากตัวแปร org
+   ค่าจริงอยู่ในชีต "ตั้งค่าหน่วยงาน" ที่เดียว หน้าเว็บไม่มีจอตั้งค่าให้แก้แล้ว
+   ผู้ดูแลแก้ในชีต ทุกเครื่องที่เปิดระบบก็ได้ค่าชุดเดียวกันเอง
+   ที่เก็บในเครื่องเป็นแค่สำเนาไว้ขึ้นหัวเว็บทันทีตอนเปิดครั้งถัดไป
+   ไม่ต้องรอเน็ต และยังใช้งานต่อได้ถ้าชีตล่ม
+   ทุกจุดที่แสดงชื่อหน่วยงานและโลโก้ ทั้งหัวเว็บ หน้าเข้าสู่ระบบ
+   และการ์ดที่แชร์เข้า LINE อ่านจากตัวแปร org ตัวเดียวกัน
    ═══════════════════════════════════════════════════════════════════ */
 const ORG_KEY = 'saraban.orgSettings.v1';
 
@@ -153,22 +157,22 @@ function sizedLogoUrl(url, px) {
 
 let org = { ...ORG_DEFAULTS };
 
-function loadOrgSettings() {
+/** อ่านสำเนาค่าที่ดึงจากชีตไว้ครั้งก่อน */
+function loadOrgCache() {
   try {
     const saved = JSON.parse(localStorage.getItem(ORG_KEY) || 'null');
     if (saved && typeof saved === 'object') org = { ...ORG_DEFAULTS, ...saved };
   } catch (err) {
-    console.warn('อ่านค่าตั้งค่าเดิมไม่ได้ ใช้ค่าเริ่มต้นแทน', err);
+    console.warn('อ่านสำเนาค่าหน่วยงานไม่ได้ ใช้ค่าเริ่มต้นแทน', err);
   }
 }
 
-function persistOrgSettings() {
+/** เก็บสำเนาไว้ให้เปิดครั้งหน้าไม่ต้องรอชีต */
+function cacheOrgSettings() {
   try {
     localStorage.setItem(ORG_KEY, JSON.stringify(org));
-    return true;
   } catch (err) {
-    console.warn('บันทึกค่าตั้งค่าลงเครื่องไม่ได้', err);
-    return false;
+    console.warn('เก็บสำเนาค่าหน่วยงานลงเครื่องไม่ได้', err);
   }
 }
 
@@ -194,36 +198,25 @@ function pickOrgFields(values) {
 }
 
 /**
- * ดึงค่าจากชีตมาทับค่าในเครื่อง
- * เรียกตอนเปิดหน้าเว็บ (เงียบ ๆ) และตอนกดปุ่มดึงค่าเอง
+ * ดึงค่าจากชีตมาทับสำเนาในเครื่อง
+ *
+ * เรียกเงียบ ๆ ตอนเปิดหน้าเว็บ ดึงไม่ได้ก็ใช้สำเนาเดิมต่อ
+ * ไม่ต้องกวนผู้ใช้ด้วยข้อความเตือน เพราะแก้อะไรจากหน้านี้ไม่ได้อยู่แล้ว
  */
-async function syncOrgSettingsFromCloud({ silent = true } = {}) {
-  if (!cloudEnabled()) {
-    if (!silent) toast('ยังไม่ได้เชื่อมต่อเซิร์ฟเวอร์ ค่าจึงเก็บไว้ในเครื่องนี้', 'info');
-    return false;
-  }
+async function syncOrgSettingsFromCloud() {
+  if (!cloudEnabled()) return false;
 
   try {
     const out = await cloudGet({ action: 'settings' });
     const fields = pickOrgFields(out.settings || {});
-
-    if (!Object.keys(fields).length) {
-      if (!silent) toast('ในชีตยังไม่มีค่าที่ตั้งไว้ กดบันทึกเพื่อส่งค่าชุดนี้ขึ้นไป', 'info');
-      return false;
-    }
+    if (!Object.keys(fields).length) return false;
 
     org = { ...ORG_DEFAULTS, ...org, ...fields };
-    persistOrgSettings();
+    cacheOrgSettings();
     applyOrgSettings();
-
-    if (!silent) {
-      fillSettingsForm(org);
-      toast('ดึงค่าล่าสุดจากชีตแล้ว');
-    }
     return true;
   } catch (err) {
-    console.warn('ดึงค่าตั้งค่าจากชีตไม่สำเร็จ ใช้ค่าที่เก็บในเครื่องแทน', err);
-    if (!silent) toast(cloudErrorMessage(err), 'error');
+    console.warn('ดึงค่าหน่วยงานจากชีตไม่สำเร็จ ใช้สำเนาในเครื่องแทน', err);
     return false;
   }
 }
@@ -257,116 +250,16 @@ function applyOrgSettings() {
   });
 }
 
-/* ── หน้าต่างตั้งค่า ───────────────────────────────────────────── */
-function fillSettingsForm(values) {
-  $('set-school-name').value = values.schoolName || '';
-  $('set-logo-url').value = values.logoUrl || '';
-  updateSettingsPreview();
-}
+/* ── กล่องวิธีใช้งาน ───────────────────────────────────────────── */
+function openHelp() { openSheet($('helpModal')); }
+function closeHelp() { closeSheet($('helpModal')); }
 
-function readSettingsForm() {
-  return {
-    schoolName: $('set-school-name').value.trim() || ORG_DEFAULTS.schoolName,
-    logoUrl: $('set-logo-url').value.trim()
-  };
-}
+$('openHelpBtn').addEventListener('click', openHelp);
+$('openHelpBtnTool').addEventListener('click', openHelp);
+$('closeHelpModal').addEventListener('click', closeHelp);
+$('closeHelpBtn').addEventListener('click', closeHelp);
 
-function updateSettingsPreview() {
-  const draft = readSettingsForm();
-  setTextIfExists('settings-preview-name', draft.schoolName);
-
-  const preview = $('settings-logo-preview');
-  if (draft.logoUrl) {
-    preview.onerror = () => preview.classList.add('hidden');
-    preview.onload = () => preview.classList.remove('hidden');
-    const previewSrc = sizedLogoUrl(draft.logoUrl, 144);   // กรอบ 48 px เผื่อจอความละเอียดสูง 3 เท่า
-    if (preview.getAttribute('src') !== previewSrc) preview.src = previewSrc;
-    preview.classList.remove('hidden');
-  } else {
-    preview.removeAttribute('src');
-    preview.classList.add('hidden');
-  }
-}
-
-/** บอกให้ชัดว่าค่าที่กรอกจะไปอยู่ที่ไหน ชีตกลางหรือเครื่องนี้เท่านั้น */
-function updateSettingsStorageNote() {
-  setTextIfExists('settings-storage-note', cloudEnabled()
-    ? 'ค่าเหล่านี้เก็บในชีต "ตั้งค่าหน่วยงาน" ทุกเครื่องที่เปิดระบบจะได้ค่าชุดเดียวกัน'
-    : 'ยังไม่ได้เชื่อมต่อเซิร์ฟเวอร์ ค่าจึงเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น');
-
-  const pull = $('pullSettingsBtn');
-  if (pull) pull.classList.toggle('hidden', !cloudEnabled());
-}
-
-function openSettings() {
-  fillSettingsForm(org);
-  updateSettingsStorageNote();
-  openSheet($('settingsModal'));
-}
-
-$('openSettingsBtn').addEventListener('click', openSettings);
-$('openSettingsBtnTool').addEventListener('click', openSettings);
-$('closeSettingsModal').addEventListener('click', () => closeSheet($('settingsModal')));
-$('cancelSettingsBtn').addEventListener('click', () => closeSheet($('settingsModal')));
-$('settingsForm').addEventListener('input', updateSettingsPreview);
-
-$('pullSettingsBtn').addEventListener('click', async () => {
-  showLoading('กำลังดึงค่าจากชีต...');
-  await syncOrgSettingsFromCloud({ silent: false });
-  hideLoading();
-});
-
-$('resetSettingsBtn').addEventListener('click', () => {
-  fillSettingsForm(ORG_DEFAULTS);
-  toast('เติมค่าเริ่มต้นให้แล้ว กดบันทึกเพื่อยืนยัน', 'info');
-});
-
-$('settingsForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const next = readSettingsForm();
-
-  if (next.logoUrl && !/^https?:\/\//i.test(next.logoUrl)) {
-    toast('ลิงก์โลโก้ต้องขึ้นต้นด้วย http:// หรือ https://', 'error');
-    return;
-  }
-
-  org = { ...ORG_DEFAULTS, ...next };
-
-  const stored = persistOrgSettings();   // สำเนาในเครื่อง ใช้ต่อได้แม้ชีตล่ม
-  applyOrgSettings();
-
-  // ที่เก็บจริงคือชีต ส่งขึ้นไปให้เครื่องอื่นเห็นค่าเดียวกัน
-  let cloudError = '';
-  if (cloudEnabled()) {
-    showLoading('กำลังบันทึกลงชีตตั้งค่า...');
-    try {
-      const out = await cloudPost('saveSettings', { settings: org });
-      const fields = pickOrgFields(out.settings || {});
-      if (Object.keys(fields).length) {
-        org = { ...ORG_DEFAULTS, ...org, ...fields };
-        persistOrgSettings();
-        applyOrgSettings();
-      }
-    } catch (err) {
-      console.error(err);
-      cloudError = cloudErrorMessage(err);
-    } finally {
-      hideLoading();
-    }
-  }
-
-  closeSheet($('settingsModal'));
-
-  if (cloudError) {
-    toast(`บันทึกลงชีตไม่สำเร็จ: ${cloudError} (เก็บไว้ในเครื่องนี้แล้ว)`, 'error');
-  } else if (!stored && !cloudEnabled()) {
-    toast('บันทึกแล้ว แต่จำค่าไว้ในเครื่องไม่ได้ ค่าจะหายเมื่อปิดหน้านี้', 'info');
-  } else {
-    toast(cloudEnabled() ? 'บันทึกลงชีตตั้งค่าแล้ว' : 'บันทึกการตั้งค่าแล้ว');
-  }
-});
-
-loadOrgSettings();
+loadOrgCache();
 applyOrgSettings();
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -394,11 +287,21 @@ toolPanel.querySelectorAll('button').forEach((btn) => {
 });
 
 /* ═══════════════════════════════════════════════════════════════════
-   เปิดไฟล์ PDF
+   เลือกไฟล์ PDF — จุดเดียวของทั้งระบบ
+
+   เดิมมีที่หย่อนไฟล์สามที่ หน้าแรกหนึ่ง ในกล่องแยกหน้าหนึ่ง ในกล่องรวมไฟล์อีกหนึ่ง
+   ผู้ใช้ต้องรู้ก่อนว่าจะทำอะไร ถึงจะรู้ว่าต้องไปหย่อนไฟล์ที่ปุ่มไหน
+   ตอนนี้เลือกไฟล์ก่อน แล้วค่อยเลือกว่าจะแก้ไข แยกหน้า หรือรวมไฟล์
+   ที่หย่อนไฟล์ในสองกล่องนั้นยังอยู่ แต่เหลือไว้เป็นปุ่มเปลี่ยนหรือเพิ่มไฟล์เท่านั้น
    ═══════════════════════════════════════════════════════════════════ */
 const dropZone = $('dropStampZone');
 const fileInput = $('stampFileInput');
 const fileLabel = $('stampList');
+const startStep1 = $('startStep1');
+const startStep2 = $('startStep2');
+
+/** ไฟล์ที่เลือกไว้แล้ว รอผู้ใช้บอกว่าจะเอาไปทำอะไร */
+let pickedFiles = [];
 
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('keydown', (e) => {
@@ -417,28 +320,90 @@ dropZone.addEventListener('dragleave', () => {
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('border-ink-400', 'bg-ink-50');
-  handleFile(e.dataTransfer.files[0]);
+  pickFiles(e.dataTransfer.files);
 });
 
 fileInput.addEventListener('change', (e) => {
-  handleFile(e.target.files[0]);
+  pickFiles(e.target.files);
   e.target.value = '';
 });
 
 $('openImportJsonBtn').addEventListener('click', () => $('import-json').click());
 
-function handleFile(file) {
-  if (!file || file.type !== 'application/pdf') {
+/** บางเครื่องส่ง type ว่างมา จึงดูนามสกุลไฟล์เป็นตัวสำรอง */
+function isPdfFile(file) {
+  return !!file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name || ''));
+}
+
+function pickFiles(list) {
+  const files = Array.from(list || []).filter(isPdfFile);
+
+  if (!files.length) {
     fileLabel.innerHTML =
       '<p class="text-sm text-seal-500">รองรับเฉพาะไฟล์ PDF เลือกไฟล์ใหม่อีกครั้งนะครับ</p>';
     return;
   }
 
-  fileLabel.innerHTML = `
-    <div class="flex items-center gap-3 rounded-xl bg-ink-50 px-4 py-3">
-      <i class="fa-solid fa-file-pdf text-seal-500"></i>
-      <span class="text-sm text-ink-700 truncate">${file.name}</span>
-    </div>`;
+  pickedFiles = files;
+  fileLabel.innerHTML = '';
+  showActionPicker();
+}
+
+/** ขั้นที่สอง บอกว่ากำลังถือไฟล์อะไรอยู่ แล้วให้เลือกว่าจะทำอะไรกับมัน */
+function showActionPicker() {
+  const many = pickedFiles.length > 1;
+  const firstName = pickedFiles[0].name;
+
+  $('pickedFileList').innerHTML = pickedFiles.map((file) => `
+    <div class="picked-file">
+      <i class="fa-solid fa-file-pdf text-seal-500 shrink-0"></i>
+      <span class="truncate">${escapeHtml(file.name)}</span>
+    </div>`).join('');
+
+  // แก้ไขกับแยกหน้าทำได้ทีละไฟล์ ถ้าเลือกมาหลายไฟล์ต้องบอกให้ชัดว่าจะใช้ไฟล์ไหน
+  setTextIfExists('actionEditNote', many
+    ? `ใช้ไฟล์แรก · ${firstName}`
+    : 'ลายเซ็น ข้อความ รูปภาพ ไฮไลท์ แล้วบันทึกเป็น PDF');
+
+  setTextIfExists('actionSplitNote', many
+    ? `ใช้ไฟล์แรก · ${firstName}`
+    : 'เลือกทีละหน้า หรือแบ่งเป็นช่วง');
+
+  setTextIfExists('actionMergeNote', many
+    ? `รวม ${toThaiDigits(pickedFiles.length)} ไฟล์ที่เลือกไว้ เรียงลำดับได้`
+    : 'เพิ่มไฟล์อื่นในขั้นถัดไป แล้วรวมเป็นไฟล์เดียว');
+
+  startStep1.classList.add('hidden');
+  startStep2.classList.remove('hidden');
+}
+
+/** กลับไปขั้นที่หนึ่ง เริ่มเลือกไฟล์ใหม่ */
+function resetFilePicker() {
+  pickedFiles = [];
+  fileLabel.innerHTML = '';
+  startStep2.classList.add('hidden');
+  startStep1.classList.remove('hidden');
+}
+
+$('startOverBtn').addEventListener('click', resetFilePicker);
+
+$('actionEditBtn').addEventListener('click', () => openForEdit(pickedFiles[0]));
+
+$('actionSplitBtn').addEventListener('click', () => {
+  if (!pickedFiles.length) return;
+  if (!window.PdfSplit) { toast('เครื่องมือแยกหน้ายังโหลดไม่เสร็จ ลองใหม่อีกครั้ง', 'error'); return; }
+  window.PdfSplit.open(pickedFiles[0]);
+});
+
+$('actionMergeBtn').addEventListener('click', () => {
+  if (!pickedFiles.length) return;
+  if (!window.PdfMerge) { toast('เครื่องมือรวมไฟล์ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง', 'error'); return; }
+  window.PdfMerge.open(pickedFiles);
+});
+
+/** เปิดไฟล์เข้าหน้าแก้ไขเอกสาร */
+function openForEdit(file) {
+  if (!file) return;
 
   $('doc-title').textContent = file.name.replace(/\.pdf$/i, '');
 
@@ -1659,7 +1624,7 @@ document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
    ส่วนการแก้ไข ดาวน์โหลด แยกหน้า และรวมไฟล์ ยังทำงานในเครื่องได้ตามปกติ
    ═══════════════════════════════════════════════════════════════════ */
 const CLOUD = {
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbxfr6zVeDG6-00wv8Pl7UtRudmmI5lsZ1yNTc36yE9jMksjL10dvXgv01eeKEARW4rN/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbyzowR_RBRXb8XT0GKVaBg8pXwmHwDOTHpm4dLZfefzJhHgewbTFaqJCyaGKKTASveI/exec',                 // ← วาง URL ที่ลงท้ายด้วย /exec
   apiKey: 'thaigham-2569-x8k2m9'     // ← ต้องตรงกับ API_KEY ใน Code.gs
 };
 
@@ -1829,8 +1794,7 @@ function initCloud() {
 
   paintKeepNotices();
   initCloud();
-  updateSettingsStorageNote();
 
-  // ค่าในเครื่องแสดงไปก่อนแล้ว ค่าจากชีตจะมาทับเมื่อโหลดเสร็จ ไม่ต้องรอ
+  // สำเนาในเครื่องขึ้นไปก่อนแล้ว ค่าจากชีตจะมาทับเมื่อโหลดเสร็จ ไม่ต้องรอ
   syncOrgSettingsFromCloud();
 })();

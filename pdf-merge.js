@@ -33,16 +33,18 @@
   var shareBtn      = document.getElementById('mergeShareBtn');
   var keepNotice    = document.getElementById('mergeKeepNotice');
 
-  if (!modal || !openBtn) return;
+  if (!modal) return;
 
   /* ══════════════════════════════════════════
      เปิด / ปิด Modal
   ══════════════════════════════════════════ */
-  openBtn.addEventListener('click', function () {
+  function openModal() {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     updateFooter();   // LIFF เพิ่งพร้อมทีหลังได้ ปุ่มแชร์จึงเช็คสถานะใหม่ทุกครั้งที่เปิด
-  });
+  }
+
+  if (openBtn) openBtn.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
   modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
@@ -91,7 +93,8 @@
     var promises = [];
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
-      if (f.type !== 'application/pdf') continue;
+      // บางเครื่องส่ง type ว่างมา จึงดูนามสกุลไฟล์เป็นตัวสำรอง
+      if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name || '')) continue;
       promises.push(loadOneFile(f));
     }
 
@@ -374,4 +377,18 @@
     hideStatus();
     updateFooter();
   }
+
+  /* ══════════════════════════════════════════
+     ทางเข้าจากหน้าแรก
+
+     หน้าแรกเลือกไฟล์ไว้ให้แล้ว เปิดกล่องพร้อมไฟล์ชุดนั้นเลย
+     ที่หย่อนไฟล์ในกล่องนี้เหลือไว้เป็นปุ่มเพิ่มไฟล์เท่านั้น
+  ══════════════════════════════════════════ */
+  window.PdfMerge = {
+    open: function (files) {
+      resetState();
+      openModal();
+      if (files && files.length) handleFiles(files);
+    }
+  };
 })();

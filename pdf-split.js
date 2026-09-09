@@ -52,10 +52,10 @@
   var shareLabel      = document.getElementById('splitShareLabel');
   var keepNotice      = document.getElementById('splitKeepNotice');
 
-  if (!modal || !openBtn) return;
+  if (!modal) return;
 
   /* ── เปิด / ปิด Modal ── */
-  openBtn.addEventListener('click', openModal);
+  if (openBtn) openBtn.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
   modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
@@ -91,12 +91,20 @@
     uploadZone.style.borderColor = '';
     uploadZone.style.background = '';
     var f = e.dataTransfer.files[0];
-    if (f && f.type === 'application/pdf') loadFile(f);
+    // บางเครื่องส่ง type ว่างมา จึงดูนามสกุลไฟล์เป็นตัวสำรอง
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''))) loadFile(f);
   });
   changeFileBtn.addEventListener('click', resetState);
 
-  /* ── โหลดไฟล์ PDF ── */
+  /* ── โหลดไฟล์ PDF ──
+
+     การ์ดหน้าถูก render ทีละใบต่อกันเป็นลูกโซ่ยาว ไฟล์ร้อยหน้าจึงยังวาดค้างอยู่
+     ตอนผู้ใช้กดเปลี่ยนไฟล์ ถ้าไม่มีตัวคุมรุ่น การ์ดของไฟล์เก่าจะไหลมาต่อท้าย
+     ไฟล์ใหม่ กดแล้วได้เลขหน้าที่ไม่มีจริง loadToken จึงทำหน้าที่ตัดโซ่เก่าทิ้ง */
+  var loadToken = 0;
+
   function loadFile(file) {
+    var token = ++loadToken;
     splitFileName = file.name;
     showStatus('กำลังโหลด PDF...', true);
 
@@ -108,6 +116,7 @@
       splitTotalPages = doc.getPageCount();
       return pdfjsLib.getDocument({ data: splitPdfBytes.slice(0) }).promise;
     }).then(function (pdfJsDoc) {
+      if (token !== loadToken) return;
       uploadZone.classList.add('hidden');
       toolbar.classList.remove('hidden');
       modePicker.classList.remove('hidden');
@@ -128,18 +137,22 @@
       for (var i = 1; i <= splitTotalPages; i++) {
         (function (n) {
           chain = chain.then(function () {
+            if (token !== loadToken) return;   // มีไฟล์ใหม่มาแล้ว โซ่นี้เลิกวาดต่อ
             return renderPageCard(pdfJsDoc, n).then(function (card) {
+              if (token !== loadToken) return;
               pageList.appendChild(card);
             });
           });
         })(i);
       }
       return chain;
-    }).then(updateFooter)
-      .catch(function (err) {
-        console.error(err);
-        showStatus('โหลด PDF ไม่สำเร็จ: ' + err.message, false, true);
-      });
+    }).then(function () {
+      if (token === loadToken) updateFooter();
+    }).catch(function (err) {
+      if (token !== loadToken) return;
+      console.error(err);
+      showStatus('โหลด PDF ไม่สำเร็จ: ' + err.message, false, true);
+    });
   }
 
   /* ── render card แต่ละหน้า ── */
@@ -718,6 +731,7 @@
 
   /* ── reset state ── */
   function resetState() {
+    loadToken++;   // ตัดโซ่ render ของไฟล์เดิมทิ้ง
     splitPdfDoc = null; splitPdfBytes = null;
     splitFileName = ''; splitTotalPages = 0;
     splitSelected.clear();
@@ -736,4 +750,14 @@
     hideStatus();
     updateFooter();
   }
+
+  /* ── ทางเข้าจากหน้าแรก ──
+     หน้าแรกเลือกไฟล์ไว้ให้แล้ว เปิดกล่องพร้อมไฟล์นั้นเลย ไม่ต้องหย่อนไฟล์ซ้ำ */
+  window.PdfSplit = {
+    open: function (file) {
+      resetState();
+      openModal();
+      if (file) loadFile(file);
+    }
+  };
 })();

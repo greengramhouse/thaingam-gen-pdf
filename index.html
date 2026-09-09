@@ -146,12 +146,12 @@
         </div>
       </div>
 
-      <button id="openSettingsBtn"
+      <button id="openHelpBtn"
               class="inline-flex items-center gap-2 rounded-lg border border-ink-200 px-3 h-9
                      text-sm font-medium text-ink-600 hover:bg-ink-50 hover:border-ink-300 transition-colors"
-              title="ตั้งค่าชื่อและโลโก้หน่วยงาน">
-        <i class="fa-solid fa-gear"></i>
-        <span class="hidden sm:inline">ตั้งค่า</span>
+              title="วิธีใช้งานอย่างย่อ">
+        <i class="fa-regular fa-circle-question"></i>
+        <span class="hidden sm:inline">วิธีใช้</span>
       </button>
     </div>
   </header>
@@ -202,18 +202,74 @@
     <!-- ขวา: จุดเริ่มงาน -->
     <section class="relative min-w-0">
       <div class="bg-white rounded-2xl shadow-page p-6 sm:p-8">
-        <div id="dropStampZone"
-             class="group relative border-2 border-dashed border-ink-200 rounded-xl px-6 py-12 text-center cursor-pointer
-                    hover:border-ink-400 hover:bg-ink-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-500
-                    transition-colors"
-             role="button" tabindex="0" aria-label="เลือกหรือลากไฟล์ PDF">
-          <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-ink-100 text-ink-600 mb-4
-                       group-hover:bg-ink-600 group-hover:text-white transition-colors">
-            <i class="fa-solid fa-file-arrow-up text-xl"></i>
-          </span>
-          <p class="font-medium text-ink-900">ลากไฟล์ PDF มาวางที่นี่</p>
-          <p class="text-sm text-ink-500 mt-1">หรือคลิกเพื่อเลือกจากเครื่อง</p>
-          <input type="file" id="stampFileInput" class="hidden" accept="application/pdf" />
+
+        <!-- ขั้นที่ 1 · เลือกไฟล์
+             จุดอัปโหลดของทั้งระบบอยู่ตรงนี้จุดเดียว แก้ไข แยกหน้า และรวมไฟล์
+             ใช้ไฟล์ชุดเดียวกันนี้ ผู้ใช้จึงไม่ต้องเดาว่าต้องไปอัปโหลดที่ปุ่มไหน -->
+        <div id="startStep1">
+          <p class="step-label"><span class="step-num">1</span> เลือกไฟล์ PDF</p>
+
+          <div id="dropStampZone"
+               class="group relative border-2 border-dashed border-ink-200 rounded-xl px-6 py-12 text-center cursor-pointer
+                      hover:border-ink-400 hover:bg-ink-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-500
+                      transition-colors"
+               role="button" tabindex="0" aria-label="เลือกหรือลากไฟล์ PDF">
+            <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-ink-100 text-ink-600 mb-4
+                         group-hover:bg-ink-600 group-hover:text-white transition-colors">
+              <i class="fa-solid fa-file-arrow-up text-xl"></i>
+            </span>
+            <p class="font-medium text-ink-900">ลากไฟล์ PDF มาวางที่นี่</p>
+            <p class="text-sm text-ink-500 mt-1">หรือคลิกเพื่อเลือกจากเครื่อง เลือกได้หลายไฟล์</p>
+            <input type="file" id="stampFileInput" class="hidden" accept="application/pdf" multiple />
+          </div>
+        </div>
+
+        <!-- ขั้นที่ 2 · เลือกสิ่งที่จะทำกับไฟล์ที่เพิ่งเลือก -->
+        <div id="startStep2" class="hidden">
+          <div class="flex items-center justify-between gap-2">
+            <p class="step-label mb-0"><span class="step-num">2</span> เลือกสิ่งที่ต้องการทำ</p>
+            <button id="startOverBtn" type="button"
+                    class="text-xs font-medium text-ink-500 hover:text-ink-900 whitespace-nowrap">
+              <i class="fa-solid fa-rotate-left text-[10px]"></i> เลือกไฟล์ใหม่
+            </button>
+          </div>
+
+          <div id="pickedFileList" class="mt-3 space-y-1.5"></div>
+
+          <div class="mt-4 space-y-2">
+            <button id="actionEditBtn" type="button" class="action-row">
+              <span class="action-icon"><i class="fa-solid fa-pen-nib"></i></span>
+              <span class="flex-1 text-left">
+                แก้ไขและเซ็นเอกสาร
+                <span id="actionEditNote" class="block text-xs text-ink-400 font-normal mt-0.5">
+                  ลายเซ็น ข้อความ รูปภาพ ไฮไลท์ แล้วบันทึกเป็น PDF
+                </span>
+              </span>
+              <i class="fa-solid fa-chevron-right text-ink-300 text-xs shrink-0"></i>
+            </button>
+
+            <button id="actionSplitBtn" type="button" class="action-row">
+              <span class="action-icon"><i class="fa-solid fa-scissors"></i></span>
+              <span class="flex-1 text-left">
+                แยกหน้า
+                <span id="actionSplitNote" class="block text-xs text-ink-400 font-normal mt-0.5">
+                  เลือกทีละหน้า หรือแบ่งเป็นช่วง
+                </span>
+              </span>
+              <i class="fa-solid fa-chevron-right text-ink-300 text-xs shrink-0"></i>
+            </button>
+
+            <button id="actionMergeBtn" type="button" class="action-row">
+              <span class="action-icon"><i class="fa-solid fa-layer-group"></i></span>
+              <span class="flex-1 text-left">
+                รวมไฟล์
+                <span id="actionMergeNote" class="block text-xs text-ink-400 font-normal mt-0.5">
+                  เรียงลำดับแล้วรวมเป็นไฟล์เดียว
+                </span>
+              </span>
+              <i class="fa-solid fa-chevron-right text-ink-300 text-xs shrink-0"></i>
+            </button>
+          </div>
         </div>
 
         <div id="stampList" class="mt-4 empty:mt-0"></div>
@@ -230,20 +286,6 @@
                        font-medium text-ink-700 hover:bg-ink-50 hover:border-ink-300 transition-colors">
           <i class="fa-solid fa-folder-open text-ink-400"></i>
           เปิดงานที่บันทึกค้างไว้
-        </button>
-
-        <button id="openSplitPdfBtn"
-                class="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-xl border border-ink-200 px-5 py-3
-                       font-medium text-ink-700 hover:bg-ink-50 hover:border-ink-300 transition-colors">
-          <i class="fa-solid fa-scissors text-ink-400"></i>
-          แยกหน้า PDF
-        </button>
-
-        <button id="openMergePdfBtn"
-                class="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-xl border border-ink-200 px-5 py-3
-                       font-medium text-ink-700 hover:bg-ink-50 hover:border-ink-300 transition-colors">
-          <i class="fa-solid fa-layer-group text-ink-400"></i>
-          รวมไฟล์ PDF
         </button>
       </div>
     </section>
@@ -454,14 +496,14 @@
           </div>
         </section>
 
-        <!-- ตั้งค่า -->
+        <!-- ช่วยเหลือ -->
         <section>
-          <h2 class="tool-heading">ตั้งค่า</h2>
-          <button id="openSettingsBtnTool" class="tool-row">
-            <i class="fa-solid fa-gear tool-icon"></i>
+          <h2 class="tool-heading">ช่วยเหลือ</h2>
+          <button id="openHelpBtnTool" class="tool-row">
+            <i class="fa-regular fa-circle-question tool-icon"></i>
             <span class="flex-1 text-left">
-              ชื่อและโลโก้หน่วยงาน
-              <span class="block text-xs text-ink-400 font-normal">ใช้กับหัวเว็บและการ์ดแชร์เข้า LINE</span>
+              วิธีใช้งาน
+              <span class="block text-xs text-ink-400 font-normal">สรุปขั้นตอนสั้น ๆ ใช้เวลาอ่านไม่ถึงนาที</span>
             </span>
             <i class="fa-solid fa-chevron-right text-ink-300 text-xs"></i>
           </button>
@@ -546,54 +588,77 @@
   </div>
 </div>
 
-<!-- ══════════════════════════ ตั้งค่าหน่วยงาน ══════════════════════════ -->
-<div id="settingsModal" class="modal-backdrop hidden">
+<!-- ══════════════════════════ วิธีใช้งาน ══════════════════════════ -->
+<div id="helpModal" class="modal-backdrop hidden">
   <div class="modal-card max-w-lg">
     <div class="flex items-start justify-between mb-1">
-      <h2 class="font-display font-semibold text-lg">ตั้งค่าชื่อและโลโก้หน่วยงาน</h2>
-      <button id="closeSettingsModal" class="w-8 h-8 rounded-lg hover:bg-desk-100 text-ink-500" aria-label="ปิด">
+      <div>
+        <h2 class="font-display font-semibold text-lg">วิธีใช้งานอย่างย่อ</h2>
+        <p class="text-xs text-ink-500 mt-0.5">อ่านครั้งเดียวก็ใช้งานได้ทั้งระบบ</p>
+      </div>
+      <button id="closeHelpModal" class="w-8 h-8 rounded-lg hover:bg-desk-100 text-ink-500 shrink-0" aria-label="ปิด">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
-    <p class="text-sm text-ink-500 mb-2">ชื่อที่กรอกจะถูกนำไปใช้ทั้งหัวเว็บและการ์ดที่แชร์เข้า LINE</p>
 
-    <div class="flex items-start gap-2 mb-4 rounded-lg bg-desk-100 px-3 py-2">
-      <i class="fa-solid fa-database text-ink-400 text-xs mt-1"></i>
-      <p id="settings-storage-note" class="text-xs text-ink-500 flex-1">
-        ค่าเหล่านี้เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น
+    <div class="mt-4 max-h-[60dvh] overflow-y-auto pr-1 space-y-4">
+
+      <!-- ขั้นตอนหลัก -->
+      <ol class="space-y-3">
+        <li class="flex gap-3">
+          <span class="help-num">1</span>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-ink-900">เลือกไฟล์ PDF ที่หน้าแรก</p>
+            <p class="text-xs text-ink-500 mt-0.5 leading-relaxed">
+              ลากไฟล์มาวางหรือคลิกเลือกจากเครื่อง จุดเลือกไฟล์มีที่เดียว
+              ถ้าจะรวมไฟล์ให้เลือกหลายไฟล์พร้อมกันได้เลย
+            </p>
+          </div>
+        </li>
+        <li class="flex gap-3">
+          <span class="help-num">2</span>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-ink-900">เลือกสิ่งที่ต้องการทำ</p>
+            <p class="text-xs text-ink-500 mt-0.5 leading-relaxed">
+              <span class="font-medium text-ink-700">แก้ไขและเซ็นเอกสาร</span> ·
+              <span class="font-medium text-ink-700">แยกหน้า</span> ·
+              <span class="font-medium text-ink-700">รวมไฟล์</span>
+              — ทั้งสามอย่างใช้ไฟล์ที่เพิ่งเลือกไว้ ไม่ต้องอัปโหลดซ้ำ
+            </p>
+          </div>
+        </li>
+        <li class="flex gap-3">
+          <span class="help-num">3</span>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-ink-900">บันทึกหรือแชร์</p>
+            <p class="text-xs text-ink-500 mt-0.5 leading-relaxed">
+              กด <span class="font-medium text-ink-700">บันทึก PDF</span> เก็บลงเครื่อง
+              หรือ <span class="font-medium text-ink-700">แชร์เข้า LINE</span> ส่งเข้าแชทหรือกลุ่มได้ทันที
+            </p>
+          </div>
+        </li>
+      </ol>
+
+      <!-- เครื่องมือในหน้าแก้ไข -->
+      <div class="rounded-xl bg-desk-100 p-4">
+        <p class="text-xs font-semibold text-ink-700 mb-2">ในหน้าแก้ไขเอกสาร</p>
+        <ul class="space-y-1.5 text-xs text-ink-600 leading-relaxed">
+          <li><i class="fa-solid fa-signature w-4 text-ink-400"></i> วาดลายเซ็นแล้ววางลงเอกสารได้ทุกหน้า</li>
+          <li><i class="fa-solid fa-highlighter w-4 text-ink-400"></i> ไฮไลท์ ขีดเส้น วางข้อความ รูปภาพ และรูปทรง</li>
+          <li><i class="fa-solid fa-arrows-up-down-left-right w-4 text-ink-400"></i> แตะวัตถุเพื่อย้ายหรือย่อขยาย ปุ่มสีเขียวมุมบนขวาคือคัดลอก</li>
+          <li><i class="fa-regular fa-trash-can w-4 text-ink-400"></i> ลบสิ่งที่เลือกอยู่ด้วยปุ่ม Del</li>
+          <li><i class="fa-solid fa-floppy-disk w-4 text-ink-400"></i> ทำไม่เสร็จให้กดบันทึกงานค้างไว้ แล้วเปิดต่อจากหน้าแรกทีหลัง</li>
+        </ul>
+      </div>
+
+      <p class="keep-notice">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span data-keep-notice></span>
       </p>
-      <button type="button" id="pullSettingsBtn"
-              class="hidden shrink-0 text-xs font-medium text-ink-600 hover:text-ink-900 whitespace-nowrap">
-        ดึงค่าจากชีต
-      </button>
     </div>
 
-    <form id="settingsForm" class="space-y-4 max-h-[58dvh] overflow-y-auto pr-1">
-      <div class="field">
-        <label for="set-school-name">ชื่อหน่วยงาน</label>
-        <input type="text" id="set-school-name" placeholder="โรงเรียนชุมชนวัดไทยงาม" />
-      </div>
-
-      <div class="field">
-        <label for="set-logo-url">ลิงก์ภาพโลโก้</label>
-        <input type="url" id="set-logo-url" placeholder="https://.../logo.png" />
-        <p class="text-xs text-ink-400 mt-1">วางลิงก์ภาพโดยตรง (.png .jpg) เว้นว่างไว้ได้ถ้าไม่ต้องการโลโก้</p>
-      </div>
-
-      <div class="rounded-xl bg-desk-100 p-3 flex items-center gap-3">
-        <img id="settings-logo-preview" alt=""
-             class="w-12 h-12 rounded-xl object-contain bg-white ring-1 ring-desk-300 p-1 shrink-0 hidden" />
-        <div class="min-w-0">
-          <p class="text-[11px] text-ink-400 mb-0.5">ตัวอย่างหัวเว็บ</p>
-          <p id="settings-preview-name" class="text-sm text-ink-900">โรงเรียนชุมชนวัดไทยงาม</p>
-        </div>
-      </div>
-    </form>
-
     <div class="flex gap-2 mt-4">
-      <button type="button" id="resetSettingsBtn" class="btn-ghost flex-1">ค่าเริ่มต้น</button>
-      <button type="button" id="cancelSettingsBtn" class="btn-ghost flex-1">ปิด</button>
-      <button type="submit" form="settingsForm" class="btn-primary flex-[1.4]">บันทึกการตั้งค่า</button>
+      <button type="button" id="closeHelpBtn" class="btn-primary flex-1">เข้าใจแล้ว</button>
     </div>
   </div>
 </div>
