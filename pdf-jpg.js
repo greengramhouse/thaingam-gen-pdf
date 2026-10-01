@@ -340,6 +340,19 @@
     saveAllLabel.textContent = results.length > 1 ? 'บันทึกทั้งหมด (' + results.length + ' รูป)' : 'บันทึกรูป';
     zipBtn.classList.toggle('hidden', results.length < 2);
 
+    // ในแอป LINE เปิดในเบราว์เซอร์ได้ทีละรูป ปุ่มบันทึกทั้งหมดกับ ZIP จึงซ่อนไว้ไม่ให้สับสน
+    var line = inLineApp();
+    if (line) {
+      saveAllBtn.classList.toggle('hidden', results.length > 1);
+      zipBtn.classList.add('hidden');
+      document.getElementById('jpgSaveHint').innerHTML =
+        '<i class="fa-regular fa-lightbulb text-ink-400"></i> ' +
+        'กด <b>บันทึกรูป</b> ทีละรูป ระบบจะเปิดรูปใน<b>เบราว์เซอร์ของเครื่อง</b> ' +
+        'แล้ว<b>กดค้างที่รูป</b> เลือก <b>บันทึกรูปภาพ</b> รูปจะเข้าคลังรูป';
+    } else {
+      saveAllBtn.classList.remove('hidden');
+    }
+
     setPickMode(false);
   }
 
@@ -381,6 +394,12 @@
   function saveImages(items) {
     if (!items.length) return;
 
+    // ในแอป LINE เมนูแชร์ของเครื่องกดแล้วเงียบ จึงเปิดรูปในเบราว์เซอร์จริงแทน
+    if (inLineApp()) {
+      openInBrowser(items[0]);
+      return;
+    }
+
     var files = items.map(function (item) {
       return new File([item.blob], item.filename, { type: 'image/jpeg' });
     });
@@ -402,12 +421,6 @@
       return;
     }
 
-    // ในแอป LINE ดาวน์โหลดตรงไปไม่ถึงไฟล์ บอกให้กดค้างที่รูปแทน
-    if (window.LineFile && window.LineFile.inClient()) {
-      longPressHint();
-      return;
-    }
-
     items.forEach(function (item) {
       var a = document.createElement('a');
       a.href = item.url;
@@ -417,6 +430,29 @@
       a.remove();
     });
     showStatus('ถ้ารูปไม่เข้าคลังรูป ให้กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ"', false);
+  }
+
+  function inLineApp() {
+    return !!(window.LineFile && window.LineFile.inClient());
+  }
+
+  /** ในแอป LINE: ฝากรูปขึ้น Drive แล้วเปิดในเบราว์เซอร์ของเครื่อง ให้กดค้างบันทึก */
+  var opening = false;
+  function openInBrowser(item) {
+    if (opening) return;
+    opening = true;
+    showStatus('กำลังเตรียมรูปหน้า ' + item.pageNum + ' เพื่อเปิดในเบราว์เซอร์...', true);
+
+    createImageBitmap(item.blob).then(function (bmp) {
+      var width = bmp.width;
+      if (bmp.close) bmp.close();
+      return window.LineFile.openImageInBrowser({ blob: item.blob, filename: item.filename, width: width });
+    }).then(function () {
+      showStatus('เปิดรูปหน้า ' + item.pageNum + ' ในเบราว์เซอร์แล้ว กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ" ✓', false);
+    }).catch(function (err) {
+      console.error(err);
+      showStatus('เปิดในเบราว์เซอร์ไม่สำเร็จ (' + err.message + ') ลองกดค้างที่รูปในหน้านี้ แล้วเลือกบันทึกรูปภาพ', false, true);
+    }).finally(function () { opening = false; });
   }
 
   function longPressHint() {

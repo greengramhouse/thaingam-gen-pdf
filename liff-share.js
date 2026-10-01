@@ -1056,6 +1056,39 @@ window.LineFile = {
       toast('ถ้าไม่ได้ไฟล์ ให้กดปุ่ม ⋯ มุมขวาบน แล้วเลือก "เปิดในเบราว์เซอร์"', 'info');
       return 'fallback';
     }
+  },
+
+  /**
+   * เปิดรูปในเบราว์เซอร์จริงของเครื่อง ให้ผู้ใช้กดค้างแล้วบันทึกลงคลังรูป
+   *
+   * เบราว์เซอร์ในแอป LINE ไม่เปิดเมนูแชร์ของเครื่อง (กดแล้วเงียบ) และดาวน์โหลดตรงไม่ได้
+   * จึงฝากรูปขึ้น Drive ผ่าน saveShareImages ซึ่งเปิดให้ทุกคนที่มีลิงก์ดูได้เสมอ
+   * แล้วเปิดลิงก์ /thumbnail ที่คืนเป็นไฟล์รูปตรง ๆ ไม่ต้องล็อกอิน ไม่ติดหน้าขอสิทธิ์
+   *
+   * item = { blob, filename, width }
+   */
+  async openImageInBrowser(item) {
+    if (!(typeof cloudEnabled === 'function' && cloudEnabled())) {
+      throw new Error('ยังไม่ได้ตั้งค่าเชื่อมต่อ Google Drive');
+    }
+
+    const out = await cloudPost('saveShareImages', {
+      images: [{
+        base64: bytesToBase64(await toBytes(item.blob)),
+        filename: String(item.filename || 'รูป.jpg').replace(/[\\/:*?"<>|]/g, '-'),
+        mime: 'image/jpeg'
+      }]
+    });
+
+    const image = (out.images || [])[0];
+    if (!image || !image.fileId) throw new Error('เซิร์ฟเวอร์ไม่ได้คืนลิงก์รูป');
+
+    // ขอขนาดเท่ารูปจริง ไม่งั้น Drive ย่อเหลือ 1600px ตามลิงก์ที่ทำไว้ให้ LINE
+    const width = Math.round(item.width) || 1600;
+    liff.openWindow({
+      url: `https://drive.google.com/thumbnail?id=${image.fileId}&sz=w${width}`,
+      external: true
+    });
   }
 };
 
