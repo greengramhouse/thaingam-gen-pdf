@@ -346,11 +346,22 @@
       saveAllBtn.classList.toggle('hidden', results.length > 1);
       zipBtn.classList.add('hidden');
       document.getElementById('jpgSaveHint').innerHTML =
+        '<i class="fa-regular fa-lightbulb text-ink-400"></i> ' + (isIOS()
+          ? 'กด <b>บันทึกรูป</b> ทีละรูป ระบบจะเปิดรูปใน<b>เบราว์เซอร์ของเครื่อง</b> ' +
+            'แล้ว<b>กดค้างที่รูป</b> เลือก <b>บันทึกรูปภาพ</b> รูปจะเข้าคลังรูป'
+          : 'กด <b>บันทึกรูป</b> ทีละรูป ระบบจะเปิด <b>Chrome</b> แล้วดาวน์โหลดรูปลงเครื่องให้ ' +
+            'ดูได้ในแอป<b>แกลเลอรี</b>หรือ <b>Google Photos</b>');
+    } else if (isIOS()) {
+      saveAllBtn.classList.remove('hidden');
+      document.getElementById('jpgSaveHint').innerHTML =
         '<i class="fa-regular fa-lightbulb text-ink-400"></i> ' +
-        'กด <b>บันทึกรูป</b> ทีละรูป ระบบจะเปิดรูปใน<b>เบราว์เซอร์ของเครื่อง</b> ' +
-        'แล้ว<b>กดค้างที่รูป</b> เลือก <b>บันทึกรูปภาพ</b> รูปจะเข้าคลังรูป';
+        'กด <b>บันทึกรูป</b> แล้วเลือก <b>บันทึกรูปภาพ</b> ในเมนูที่ขึ้นมา รูปจะเข้าคลังรูป ' +
+        '(iPhone ต้องผ่านเมนูนี้ทุกครั้ง เว็บข้ามขั้นนี้ไม่ได้)';
     } else {
       saveAllBtn.classList.remove('hidden');
+      document.getElementById('jpgSaveHint').innerHTML =
+        '<i class="fa-regular fa-lightbulb text-ink-400"></i> ' +
+        'กด <b>บันทึกรูป</b> รูปจะลงเครื่องทันที ดูได้ในแอป<b>แกลเลอรี</b>หรือ <b>Google Photos</b>';
     }
 
     setPickMode(false);
@@ -387,16 +398,30 @@
   });
 
   /**
-   * บันทึกรูปลงเครื่อง
-   * ทางหลักคือเมนูแชร์ของเครื่อง ซึ่งมีปุ่ม "บันทึกรูปภาพ" ลงคลังรูปได้ตรง ๆ
-   * เครื่องที่ไม่มีเมนูนี้ (เช่นเบราว์เซอร์ในแอป LINE บางรุ่น) ให้กดค้างที่รูปแทน
+   * iPhone/iPad ทุกเบราว์เซอร์ (รวม Chrome) เป็นเอนจิน Safari
+   * iPadOS รุ่นใหม่แจ้งตัวเป็น Mac จึงต้องดูจอสัมผัสประกอบ
+   */
+  function isIOS() {
+    return /iP(hone|ad|od)/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  /**
+   * บันทึกรูปลงเครื่อง เว็บเขียนลงคลังภาพตรง ๆ ไม่ได้ จึงเลือกทางที่สั้นที่สุดของแต่ละเครื่อง
+   * · Android     ดาวน์โหลดตรงลงโฟลเดอร์ Download แอปแกลเลอรี/Google Photos เห็นเอง กดครั้งเดียวจบ
+   * · iPhone      Apple บังคับผ่านเมนูแชร์ แล้วกด "บันทึกรูปภาพ" อีกหนึ่งครั้ง ข้ามไม่ได้
+   * · ในแอป LINE  ดาวน์โหลดและเมนูแชร์ใช้ไม่ได้ จึงเปิดรูปในเบราว์เซอร์ของเครื่องแทน
    */
   function saveImages(items) {
     if (!items.length) return;
 
-    // ในแอป LINE เมนูแชร์ของเครื่องกดแล้วเงียบ จึงเปิดรูปในเบราว์เซอร์จริงแทน
     if (inLineApp()) {
       openInBrowser(items[0]);
+      return;
+    }
+
+    if (!isIOS()) {
+      downloadImages(items);
       return;
     }
 
@@ -421,34 +446,56 @@
       return;
     }
 
-    items.forEach(function (item) {
-      var a = document.createElement('a');
-      a.href = item.url;
-      a.download = item.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+    longPressHint();
+  }
+
+  /**
+   * Android: ดาวน์โหลดตรงทีละรูป เว้นจังหวะเล็กน้อย
+   * Chrome จะถามครั้งเดียวว่าอนุญาตให้ดาวน์โหลดหลายไฟล์ไหม ถ้ายิงพร้อมกันรวดเดียวบางรูปจะหลุด
+   */
+  function downloadImages(items) {
+    items.forEach(function (item, i) {
+      setTimeout(function () {
+        var a = document.createElement('a');
+        a.href = item.url;
+        a.download = item.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, i * 400);
     });
-    showStatus('ถ้ารูปไม่เข้าคลังรูป ให้กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ"', false);
+
+    showStatus((items.length > 1 ? 'บันทึก ' + items.length + ' รูปแล้ว' : 'บันทึกรูปแล้ว') +
+      ' ✓ ดูได้ในแอปแกลเลอรีหรือ Google Photos (โฟลเดอร์ Download)' +
+      (items.length > 1 ? ' · ถ้ามีคำถามขอดาวน์โหลดหลายไฟล์ ให้กดอนุญาต' : ''), false);
   }
 
   function inLineApp() {
     return !!(window.LineFile && window.LineFile.inClient());
   }
 
-  /** ในแอป LINE: ฝากรูปขึ้น Drive แล้วเปิดในเบราว์เซอร์ของเครื่อง ให้กดค้างบันทึก */
+  /**
+   * ในแอป LINE: ฝากรูปขึ้น Drive แล้วเปิดในเบราว์เซอร์ของเครื่อง
+   * Android เปิดเป็นลิงก์ดาวน์โหลด Chrome บันทึกลงเครื่องเลย
+   * iPhone เปิดเป็นรูป ให้กดค้างแล้วบันทึก (Safari ไม่มีทางบันทึกรูปเข้าคลังโดยตรง)
+   */
   var opening = false;
   function openInBrowser(item) {
     if (opening) return;
     opening = true;
-    showStatus('กำลังเตรียมรูปหน้า ' + item.pageNum + ' เพื่อเปิดในเบราว์เซอร์...', true);
+    var direct = !isIOS();
+    showStatus('กำลังเตรียมรูปหน้า ' + item.pageNum + '...', true);
 
     createImageBitmap(item.blob).then(function (bmp) {
       var width = bmp.width;
       if (bmp.close) bmp.close();
-      return window.LineFile.openImageInBrowser({ blob: item.blob, filename: item.filename, width: width });
+      return window.LineFile.openImageInBrowser({
+        blob: item.blob, filename: item.filename, width: width, download: direct
+      });
     }).then(function () {
-      showStatus('เปิดรูปหน้า ' + item.pageNum + ' ในเบราว์เซอร์แล้ว กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ" ✓', false);
+      showStatus(direct
+        ? 'กำลังดาวน์โหลดรูปหน้า ' + item.pageNum + ' ใน Chrome ✓ ดูได้ในแอปแกลเลอรีหรือ Google Photos'
+        : 'เปิดรูปหน้า ' + item.pageNum + ' ในเบราว์เซอร์แล้ว กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ" ✓', false);
     }).catch(function (err) {
       console.error(err);
       showStatus('เปิดในเบราว์เซอร์ไม่สำเร็จ (' + err.message + ') ลองกดค้างที่รูปในหน้านี้ แล้วเลือกบันทึกรูปภาพ', false, true);

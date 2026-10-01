@@ -1065,7 +1065,8 @@ window.LineFile = {
    * จึงฝากรูปขึ้น Drive ผ่าน saveShareImages ซึ่งเปิดให้ทุกคนที่มีลิงก์ดูได้เสมอ
    * แล้วเปิดลิงก์ /thumbnail ที่คืนเป็นไฟล์รูปตรง ๆ ไม่ต้องล็อกอิน ไม่ติดหน้าขอสิทธิ์
    *
-   * item = { blob, filename, width }
+   * item = { blob, filename, width, download }
+   * download = true เปิดลิงก์ดาวน์โหลดแทน (Android: Chrome บันทึกลงเครื่องเลย ไม่ต้องกดค้าง)
    */
   async openImageInBrowser(item) {
     if (!(typeof cloudEnabled === 'function' && cloudEnabled())) {
@@ -1086,7 +1087,9 @@ window.LineFile = {
     // ขอขนาดเท่ารูปจริง ไม่งั้น Drive ย่อเหลือ 1600px ตามลิงก์ที่ทำไว้ให้ LINE
     const width = Math.round(item.width) || 1600;
     liff.openWindow({
-      url: `https://drive.google.com/thumbnail?id=${image.fileId}&sz=w${width}`,
+      url: item.download
+        ? `https://drive.google.com/uc?export=download&id=${image.fileId}`
+        : `https://drive.google.com/thumbnail?id=${image.fileId}&sz=w${width}`,
       external: true
     });
   }
