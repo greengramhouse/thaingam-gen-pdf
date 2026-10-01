@@ -134,6 +134,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
+  pointer-events: none;   /* ลายนี้ทับปุ่มปิด ต้องให้คลิกทะลุได้ */
   opacity: .18;
   background-image:
     linear-gradient(rgba(255, 255, 255, .5) 1px, transparent 1px),
