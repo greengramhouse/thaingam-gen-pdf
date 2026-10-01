@@ -98,15 +98,16 @@
 <!-- ══════════════════════════ หน้าเริ่มต้น ══════════════════════════ -->
 <main id="startSection" class="min-h-[100dvh] flex flex-col">
 
-  <header class="px-5 sm:px-8 py-5 flex items-center gap-3">
+  <header class="sticky top-0 z-20 bg-desk-100/90 backdrop-blur pt-[env(safe-area-inset-top)] lg:static lg:bg-transparent lg:backdrop-blur-none">
+   <div class="px-4 sm:px-8 py-3 sm:py-5 flex items-center gap-3">
     <img id="brand-logo" src="https://res.cloudinary.com/djkbdwnsc/image/upload/f_auto,q_auto,c_fit,h_132,w_132/v1786978522/next-fullStack/Logo-thaingam_1_k2iec7.png"
-         alt="" class="h-11 w-auto max-w-[3.5rem] object-contain shrink-0" />
-    <div class="leading-tight">
-      <p id="brand-school" class="font-display font-semibold text-ink-900">โรงเรียนชุมชนวัดไทยงาม</p>
-      <p class="text-xs text-ink-500">เครื่องมือแก้ไขและจัดการไฟล์ PDF</p>
+         alt="" class="h-9 sm:h-11 w-auto max-w-[3.5rem] object-contain shrink-0" />
+    <div class="leading-tight min-w-0">
+      <p id="brand-school" class="font-display font-semibold text-ink-900 text-[15px] sm:text-base truncate">โรงเรียนชุมชนวัดไทยงาม</p>
+      <p class="text-xs text-ink-500 truncate">เครื่องมือแก้ไขและจัดการไฟล์ PDF</p>
     </div>
 
-    <div class="ml-auto flex items-center gap-2">
+    <div class="ml-auto flex items-center gap-2 shrink-0">
       <!-- โปรไฟล์ LINE -->
       <div id="profileChip" class="hidden relative">
         <button id="profileBtn" type="button"
@@ -154,17 +155,18 @@
         <span class="hidden sm:inline">วิธีใช้</span>
       </button>
     </div>
+   </div>
   </header>
 
-  <div class="flex-1 flex flex-col px-5 sm:px-8 lg:px-16 pb-12 max-w-7xl mx-auto w-full">
+  <div class="flex-1 flex flex-col px-4 sm:px-8 lg:px-16 pt-2 sm:pt-0 pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-12 max-w-7xl mx-auto w-full">
 
-   <div class="flex-1 grid lg:grid-cols-[1.05fr,1fr] gap-10 lg:gap-16 items-center">
+   <div class="flex-1 grid lg:grid-cols-[1.05fr,1fr] gap-8 lg:gap-16 items-start lg:items-center">
 
     <!-- ซ้าย: สาระ
          min-w-0 สำคัญ ไม่ใส่แล้วเนื้อหายาว ๆ ในคอลัมน์จะดันความกว้างจนอีกฝั่งถูกบีบ -->
     <section class="min-w-0">
-      <p class="inline-flex items-center gap-2 text-xs font-medium tracking-wide text-ink-600 bg-ink-100 rounded-full px-3 py-1 mb-5">
-        <span class="w-1.5 h-1.5 rounded-full bg-leaf-500"></span>
+      <p class="inline-flex items-start sm:items-center gap-2 text-xs font-medium tracking-wide text-ink-600 bg-ink-100 rounded-2xl sm:rounded-full px-3 py-1.5 sm:py-1 mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-leaf-500 shrink-0 mt-1.5 sm:mt-0"></span>
         ทำงานในเครื่องคุณ ไฟล์ที่ส่งขึ้นเซิร์ฟเวอร์เป็นที่พักชั่วคราวเท่านั้น
       </p>
 
@@ -173,17 +175,17 @@
         <span data-keep-notice></span>
       </p>
 
-      <h1 class="font-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-[1.45] sm:leading-[1.45] lg:leading-[1.45] font-bold text-ink-900">
+      <h1 class="font-display text-2xl sm:text-4xl lg:text-[2.75rem] leading-[1.45] sm:leading-[1.45] lg:leading-[1.45] font-bold text-ink-900">
         แก้ไขไฟล์ PDF<br class="hidden sm:block" />
         เซ็น ไฮไลท์ แยกหน้า รวมไฟล์
       </h1>
 
-      <p class="mt-4 text-ink-600 text-base sm:text-lg leading-relaxed max-w-xl">
+      <p class="mt-3 sm:mt-4 text-ink-600 text-[15px] sm:text-lg leading-relaxed max-w-xl">
         เปิดไฟล์ PDF ที่ได้รับมา วางลายเซ็น ข้อความ รูปภาพ รูปทรง และไฮไลท์ข้อความ
         แล้วบันทึกเป็น PDF หรือสั่งพิมพ์ได้ทันที
       </p>
 
-      <dl class="mt-8 grid sm:grid-cols-3 gap-x-6 gap-y-4 max-w-xl">
+      <dl class="mt-6 sm:mt-8 grid sm:grid-cols-3 gap-x-6 gap-y-4 max-w-xl">
         <div class="border-l-2 border-ink-200 pl-3">
           <dt class="font-medium text-sm text-ink-900">เครื่องมือแก้ไข</dt>
           <dd class="text-xs text-ink-500 mt-0.5">ลายเซ็น ข้อความ รูปภาพ รูปทรง ไฮไลท์</dd>
@@ -200,8 +202,9 @@
     </section>
 
     <!-- ขวา: จุดเริ่มงาน -->
-    <section class="relative min-w-0">
-      <div class="bg-white rounded-2xl shadow-page p-6 sm:p-8">
+    <!-- มือถือ: กล่องเลือกไฟล์ขึ้นก่อน งานหลักต้องเห็นทันทีไม่ต้องเลื่อนหา -->
+    <section class="relative min-w-0 order-first lg:order-none">
+      <div class="bg-white rounded-2xl shadow-page p-5 sm:p-8">
 
         <!-- ขั้นที่ 1 · เลือกไฟล์
              จุดอัปโหลดของทั้งระบบอยู่ตรงนี้จุดเดียว แก้ไข แยกหน้า และรวมไฟล์
@@ -210,7 +213,7 @@
           <p class="step-label"><span class="step-num">1</span> เลือกไฟล์ PDF</p>
 
           <div id="dropStampZone"
-               class="group relative border-2 border-dashed border-ink-200 rounded-xl px-6 py-12 text-center cursor-pointer
+               class="group relative border-2 border-dashed border-ink-200 rounded-xl px-5 py-9 sm:px-6 sm:py-12 text-center cursor-pointer
                       hover:border-ink-400 hover:bg-ink-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-500
                       transition-colors"
                role="button" tabindex="0" aria-label="เลือกหรือลากไฟล์ PDF">
@@ -218,8 +221,14 @@
                          group-hover:bg-ink-600 group-hover:text-white transition-colors">
               <i class="fa-solid fa-file-arrow-up text-xl"></i>
             </span>
-            <p class="font-medium text-ink-900">ลากไฟล์ PDF มาวางที่นี่</p>
-            <p class="text-sm text-ink-500 mt-1">หรือคลิกเพื่อเลือกจากเครื่อง เลือกได้หลายไฟล์</p>
+            <p class="font-medium text-ink-900">
+              <span class="sm:hidden">แตะเพื่อเลือกไฟล์ PDF</span>
+              <span class="hidden sm:inline">ลากไฟล์ PDF มาวางที่นี่</span>
+            </p>
+            <p class="text-sm text-ink-500 mt-1">
+              <span class="sm:hidden">เลือกได้หลายไฟล์พร้อมกัน</span>
+              <span class="hidden sm:inline">หรือคลิกเพื่อเลือกจากเครื่อง เลือกได้หลายไฟล์</span>
+            </p>
             <input type="file" id="stampFileInput" class="hidden" accept="application/pdf" multiple />
           </div>
         </div>
@@ -291,7 +300,7 @@
     </section>
    </div>
 
-   <footer class="pt-10 mt-4 border-t border-ink-100 flex flex-wrap items-center justify-center gap-x-2 gap-y-1
+   <footer class="pt-6 sm:pt-10 mt-8 sm:mt-4 border-t border-ink-100 flex flex-wrap items-center justify-center gap-x-2 gap-y-1
                   text-xs text-ink-400">
      <span>พัฒนาโดย</span>
      <button id="openCreditBtn" type="button"
@@ -307,8 +316,8 @@
 <div id="previewSection" class="hidden fixed inset-0 z-30 flex flex-col bg-desk-200">
 
   <!-- แถบบน -->
-  <header class="shrink-0 bg-ink-900 text-white">
-    <div class="h-14 px-3 sm:px-4 flex items-center gap-3">
+  <header class="relative z-40 shrink-0 bg-ink-900 text-white pt-[env(safe-area-inset-top)]">
+    <div class="h-14 px-2 sm:px-4 flex items-center gap-2 sm:gap-3">
       <button id="back-to-upload-btn"
               class="shrink-0 w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors"
               title="กลับหน้าแรก" aria-label="กลับหน้าแรก">
@@ -323,7 +332,7 @@
       </div>
 
       <div class="flex items-center gap-1 sm:gap-1.5">
-        <button id="export-json" class="topbar-btn" title="บันทึกงานค้างไว้ (JSON)" aria-label="บันทึกงาน">
+        <button id="export-json" class="topbar-btn hidden sm:flex" title="บันทึกงานค้างไว้ (JSON)" aria-label="บันทึกงาน">
           <i class="fa-regular fa-floppy-disk"></i>
         </button>
         <button id="export-jpg-btn" class="topbar-btn hidden sm:flex" title="บันทึกเป็นรูป JPG" aria-label="บันทึก JPG">
@@ -332,7 +341,7 @@
         <button id="upload-drive-btn" class="topbar-btn hidden" title="อัปโหลดขึ้น Google Drive" aria-label="อัปโหลดขึ้น Drive">
           <i class="fab fa-google-drive"></i>
         </button>
-        <button id="print-pdf-btn" class="topbar-btn" title="พิมพ์" aria-label="พิมพ์">
+        <button id="print-pdf-btn" class="topbar-btn hidden sm:flex" title="พิมพ์" aria-label="พิมพ์">
           <i class="fa-solid fa-print"></i>
         </button>
         <button id="share-line-btn" class="topbar-btn" title="แชร์เข้า LINE" aria-label="แชร์เข้า LINE">
@@ -344,6 +353,33 @@
           <i class="fa-solid fa-file-arrow-down"></i>
           <span class="hidden sm:inline">ดาวน์โหลด PDF</span>
         </button>
+
+        <!-- มือถือ: ปุ่มที่ไม่ได้ใช้บ่อยรวมไว้ในเมนูนี้ แถบบนจะได้ไม่แน่น -->
+        <div class="relative sm:hidden">
+          <button id="moreMenuBtn" type="button" class="topbar-btn" aria-label="เมนูเพิ่มเติม"
+                  aria-haspopup="true" aria-expanded="false">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <div id="moreMenu" class="more-menu hidden" role="menu">
+            <button type="button" class="more-item" data-proxy="export-json" role="menuitem">
+              <i class="fa-regular fa-floppy-disk"></i>
+              <span>บันทึกงานค้างไว้<small>เปิดแก้ต่อทีหลังได้</small></span>
+            </button>
+            <button type="button" class="more-item" data-proxy="export-jpg-btn" role="menuitem">
+              <i class="fa-regular fa-image"></i>
+              <span>บันทึกเป็นรูป JPG</span>
+            </button>
+            <button type="button" class="more-item" data-proxy="print-pdf-btn" role="menuitem">
+              <i class="fa-solid fa-print"></i>
+              <span>พิมพ์</span>
+            </button>
+            <div class="h-px bg-desk-200 my-1"></div>
+            <button type="button" class="more-item" data-proxy="openHelpBtnTool" role="menuitem">
+              <i class="fa-regular fa-circle-question"></i>
+              <span>วิธีใช้งาน</span>
+            </button>
+          </div>
+        </div>
 
         <span id="topbarProfile" class="hidden items-center gap-2 ml-1 sm:ml-2 sm:pl-3 sm:border-l border-white/15">
           <img id="profileAvatarTop" alt="" class="w-8 h-8 rounded-full object-cover bg-ink-700 ring-1 ring-white/25" />
@@ -373,7 +409,7 @@
         </button>
       </div>
 
-      <div class="p-4 space-y-6">
+      <div class="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-6">
 
         <!-- ปากกาและเครื่องหมาย -->
         <section>
@@ -554,14 +590,28 @@
         <button id="zoom-percent" class="font-mono text-xs text-ink-600 w-11 text-center hover:text-ink-900" title="กลับไปขนาดพอดีหน้าจอ">100%</button>
         <button id="zoom-in" class="ctrl-btn" aria-label="ขยาย"><i class="fa-solid fa-plus text-xs"></i></button>
       </div>
-
-      <button id="mobileToolBtn"
-              class="md:hidden w-12 h-12 rounded-full bg-ink-900 text-white shadow-pill flex items-center justify-center"
-              aria-label="เปิดเครื่องมือ">
-        <i class="fa-solid fa-pen-ruler text-lg"></i>
-      </button>
     </div>
   </div>
+
+  <!-- มือถือ: แถบเมนูล่าง เครื่องมือที่ใช้บ่อยกดได้ทันทีด้วยนิ้วโป้ง
+       แต่ละปุ่มสั่งปุ่มจริงในแผงเครื่องมือ (data-proxy) จึงไม่ต้องเขียนการทำงานซ้ำ -->
+  <nav id="mobileNav" class="mobile-nav md:hidden" aria-label="เครื่องมือหลัก">
+    <button type="button" class="nav-item" data-proxy="openModalBtn">
+      <i class="fa-solid fa-signature"></i><span>ลายเซ็น</span>
+    </button>
+    <button type="button" class="nav-item" data-proxy="openTextModalBtn">
+      <i class="fa-solid fa-font"></i><span>ข้อความ</span>
+    </button>
+    <button type="button" id="navHighlightBtn" class="nav-item" data-proxy="highlight-text-btn">
+      <i class="fa-solid fa-highlighter"></i><span>ไฮไลท์</span>
+    </button>
+    <button type="button" class="nav-item" data-proxy="insert-imageF-btn">
+      <i class="fa-regular fa-image"></i><span>รูปภาพ</span>
+    </button>
+    <button type="button" id="mobileToolBtn" class="nav-item" aria-label="เปิดเครื่องมือทั้งหมด">
+      <i class="fa-solid fa-grip"></i><span>ทั้งหมด</span>
+    </button>
+  </nav>
 </div>
 
 <!-- ══════════════════════════ กล่องลายเซ็น ══════════════════════════ -->

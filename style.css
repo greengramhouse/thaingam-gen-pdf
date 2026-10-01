@@ -46,6 +46,101 @@ body {
 }
 .topbar-btn:hover { background: rgba(255, 255, 255, .12); }
 
+/* เมนูเพิ่มเติมบนแถบบน (มือถือ) */
+.more-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + .5rem);
+  z-index: 50;
+  width: 15rem;
+  padding: .375rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid var(--desk-200);
+  box-shadow: 0 18px 40px -16px rgba(11, 21, 42, .45);
+  transform-origin: top right;
+  animation: menuIn .16s ease-out;
+}
+.more-menu.hidden { display: none; }
+
+.more-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: .5rem .75rem;
+  border-radius: .625rem;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  text-align: left;
+  transition: background-color .15s ease;
+}
+.more-item:hover,
+.more-item:active { background: var(--desk-100); }
+.more-item > i { width: 1.125rem; text-align: center; color: var(--ink-500); }
+.more-item small {
+  display: block;
+  font-size: .6875rem;
+  font-weight: 400;
+  color: var(--ink-400);
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-4px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── มือถือ: แถบเมนูล่างของหน้าทำงาน ───────────────────────────── */
+.mobile-nav {
+  position: relative;
+  z-index: 30;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .25rem;
+  padding: .375rem .5rem calc(.375rem + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, .96);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--desk-300);
+  box-shadow: 0 -6px 20px -14px rgba(18, 32, 61, .4);
+}
+@media (min-width: 768px) { .mobile-nav { display: none; } }
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem;
+  min-height: 3.25rem;
+  border-radius: .875rem;
+  font-size: .6875rem;
+  font-weight: 500;
+  color: var(--ink-500);
+  -webkit-tap-highlight-color: transparent;
+  transition: color .15s ease, background-color .15s ease;
+}
+
+/* ไอคอนอยู่ในเม็ดยา เวลาเปิดใช้งานเม็ดยาจะเติมสี แบบแอปมือถือทั่วไป */
+.nav-item > i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  font-size: 1.0625rem;
+  transition: background-color .2s ease, color .2s ease, transform .15s ease;
+}
+.nav-item:active > i { transform: scale(.92); }
+.nav-item.is-active { color: var(--ink-900); font-weight: 600; }
+.nav-item.is-active > i { background: var(--ink-100); color: var(--ink-700); }
+
+/* ปุ่ม "ทั้งหมด" เด่นกว่าเพื่อนเล็กน้อย บอกว่ายังมีเครื่องมืออื่นอีก */
+#mobileToolBtn > i { background: var(--ink-900); color: #fff; }
+
 /* ── หน้าเริ่มต้น: เลือกไฟล์ที่เดียว แล้วค่อยเลือกว่าจะทำอะไร ──────── */
 .step-label {
   display: flex;
@@ -310,6 +405,12 @@ body {
   text-align: center;
   color: var(--ink-500);
   font-size: .9375rem;
+}
+
+/* มือถือ: แถวเครื่องมือสูงพอให้นิ้วแตะได้ไม่พลาด (อย่างน้อย 44px) */
+@media (max-width: 767px) {
+  .tool-row { min-height: 2.875rem; font-size: .9375rem; }
+  .action-row { min-height: 3.5rem; }
 }
 
 

@@ -339,10 +339,44 @@ $('closeToolPanel').addEventListener('click', closeToolPanel);
 toolBackdrop.addEventListener('click', closeToolPanel);
 
 // แตะเครื่องมือบนมือถือแล้วปิดแผงให้เห็นเอกสารทันที
+// ยกเว้นปุ่มที่กดแล้วต้องเลือกต่อในแผง เช่น รูปทรงต้องกางให้เลือกแบบก่อน
 toolPanel.querySelectorAll('button').forEach((btn) => {
-  if (['closeToolPanel', 'highlight-text-btn'].includes(btn.id)) return;
+  if (['closeToolPanel', 'highlight-text-btn', 'shape-btn'].includes(btn.id)) return;
   btn.addEventListener('click', () => setTimeout(closeToolPanel, 120));
 });
+
+/* ── มือถือ: แถบเมนูล่าง และเมนูเพิ่มเติมบนแถบบน ─────────────────
+   ปุ่มที่มี data-proxy แค่สั่งกดปุ่มจริงตาม id การทำงานจึงอยู่ที่เดียว */
+document.querySelectorAll('[data-proxy]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    closeMoreMenu();
+    $(btn.dataset.proxy)?.click();
+  });
+});
+
+const moreMenuBtn = $('moreMenuBtn');
+const moreMenu = $('moreMenu');
+
+function closeMoreMenu() {
+  moreMenu.classList.add('hidden');
+  moreMenuBtn.setAttribute('aria-expanded', 'false');
+}
+
+moreMenuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const willOpen = moreMenu.classList.contains('hidden');
+  moreMenu.classList.toggle('hidden', !willOpen);
+  moreMenuBtn.setAttribute('aria-expanded', String(willOpen));
+});
+
+document.addEventListener('click', (e) => {
+  if (!moreMenu.contains(e.target)) closeMoreMenu();
+});
+
+// ปุ่มไฮไลท์ที่แถบล่างติดสีตามสถานะของปุ่มจริงในแผงเครื่องมือ
+new MutationObserver(() => {
+  $('navHighlightBtn').classList.toggle('is-active', $('highlight-text-btn').classList.contains('is-active'));
+}).observe($('highlight-text-btn'), { attributes: true, attributeFilter: ['class'] });
 
 /* ═══════════════════════════════════════════════════════════════════
    เลือกไฟล์ PDF — จุดเดียวของทั้งระบบ
@@ -786,6 +820,7 @@ document.addEventListener('keydown', (e) => {
     stopHighlightDrawing();
     document.querySelectorAll('.modal-backdrop').forEach(closeSheet);
     closeToolPanel();
+    closeMoreMenu();
   }
 });
 
