@@ -43,7 +43,7 @@
         integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20261001b" />
 
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
@@ -274,6 +274,17 @@
                 รวมไฟล์
                 <span id="actionMergeNote" class="block text-xs text-ink-400 font-normal mt-0.5">
                   เรียงลำดับแล้วรวมเป็นไฟล์เดียว
+                </span>
+              </span>
+              <i class="fa-solid fa-chevron-right text-ink-300 text-xs shrink-0"></i>
+            </button>
+
+            <button id="actionJpgBtn" type="button" class="action-row">
+              <span class="action-icon"><i class="fa-regular fa-file-image"></i></span>
+              <span class="flex-1 text-left">
+                แปลง PDF เป็น JPG
+                <span id="actionJpgNote" class="block text-xs text-ink-400 font-normal mt-0.5">
+                  เลือกหน้า แล้วบันทึกเป็นรูปภาพ
                 </span>
               </span>
               <i class="fa-solid fa-chevron-right text-ink-300 text-xs shrink-0"></i>
@@ -563,7 +574,7 @@
 
     <!-- พื้นที่เอกสาร -->
     <div id="container-warper" class="flex-1 overflow-auto relative">
-      <div id="pdf-container" class="flex flex-col items-center gap-6 p-4 sm:p-6 pb-32 w-full mx-auto"></div>
+      <div id="pdf-container" class="flex flex-col items-center gap-6 p-4 sm:p-6 pb-8 md:pb-32 w-full mx-auto"></div>
 
       <div id="scroll-page-indicator"
            class="fixed top-1/2 right-3 -translate-y-1/2 bg-ink-900/85 text-white text-xs font-mono px-2.5 py-1.5 rounded-lg
@@ -571,10 +582,14 @@
         หน้า 1
       </div>
     </div>
+  </div>
 
-    <!-- แถบควบคุมลอย -->
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-      <div class="flex items-center gap-1 bg-white/95 backdrop-blur rounded-full shadow-pill px-1.5 py-1.5">
+  <!-- แถบล่าง
+       เดสก์ท็อป: ลอยกลางจอเป็นเม็ดยาเปลี่ยนหน้า/ซูมเหมือนเดิม
+       มือถือ: เป็นแผงติดขอบล่างแบบแอปแต่งเอกสาร แถวบนเปลี่ยนหน้า/ซูม แถวล่างเครื่องมือปัดซ้ายขวาได้ -->
+  <div id="bottomBar" class="bottom-bar">
+    <div class="ctrl-pill">
+      <div class="flex items-center gap-1">
         <button id="prev-page" class="ctrl-btn" aria-label="หน้าก่อนหน้า"><i class="fa-solid fa-chevron-up text-xs"></i></button>
         <div class="flex items-center gap-1 px-1">
           <input id="page-input" type="number" min="1" value="1"
@@ -583,35 +598,52 @@
           <span id="total-pages" class="font-mono text-sm text-ink-500 pr-1">1</span>
         </div>
         <button id="next-page" class="ctrl-btn" aria-label="หน้าถัดไป"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+      </div>
 
-        <span class="w-px h-6 bg-desk-300 mx-1"></span>
+      <span class="hidden md:block w-px h-6 bg-desk-300 mx-1"></span>
 
+      <div class="flex items-center gap-1">
         <button id="zoom-out" class="ctrl-btn" aria-label="ย่อ"><i class="fa-solid fa-minus text-xs"></i></button>
         <button id="zoom-percent" class="font-mono text-xs text-ink-600 w-11 text-center hover:text-ink-900" title="กลับไปขนาดพอดีหน้าจอ">100%</button>
         <button id="zoom-in" class="ctrl-btn" aria-label="ขยาย"><i class="fa-solid fa-plus text-xs"></i></button>
       </div>
     </div>
-  </div>
 
-  <!-- มือถือ: แถบเมนูล่าง เครื่องมือที่ใช้บ่อยกดได้ทันทีด้วยนิ้วโป้ง
-       แต่ละปุ่มสั่งปุ่มจริงในแผงเครื่องมือ (data-proxy) จึงไม่ต้องเขียนการทำงานซ้ำ -->
-  <nav id="mobileNav" class="mobile-nav md:hidden" aria-label="เครื่องมือหลัก">
-    <button type="button" class="nav-item" data-proxy="openModalBtn">
-      <i class="fa-solid fa-signature"></i><span>ลายเซ็น</span>
-    </button>
-    <button type="button" class="nav-item" data-proxy="openTextModalBtn">
-      <i class="fa-solid fa-font"></i><span>ข้อความ</span>
-    </button>
-    <button type="button" id="navHighlightBtn" class="nav-item" data-proxy="highlight-text-btn">
-      <i class="fa-solid fa-highlighter"></i><span>ไฮไลท์</span>
-    </button>
-    <button type="button" class="nav-item" data-proxy="insert-imageF-btn">
-      <i class="fa-regular fa-image"></i><span>รูปภาพ</span>
-    </button>
-    <button type="button" id="mobileToolBtn" class="nav-item" aria-label="เปิดเครื่องมือทั้งหมด">
-      <i class="fa-solid fa-grip"></i><span>ทั้งหมด</span>
-    </button>
-  </nav>
+    <!-- มือถือ: เครื่องมือทุกตัวเรียงในแถวเดียว ปัดดูเพิ่มได้
+         ปุ่มที่มี data-proxy สั่งกดปุ่มจริงในแผงเครื่องมือ การทำงานจึงอยู่ที่เดียว -->
+    <nav id="mobileNav" class="tool-dock" aria-label="เครื่องมือ">
+      <button type="button" class="dock-item" data-proxy="openModalBtn">
+        <i class="fa-solid fa-signature"></i><span>ลายเซ็น</span>
+      </button>
+      <button type="button" class="dock-item" data-proxy="openTextModalBtn">
+        <i class="fa-solid fa-font"></i><span>ข้อความ</span>
+      </button>
+      <button type="button" class="dock-item" data-proxy="insert-imageF-btn">
+        <i class="fa-regular fa-image"></i><span>รูปภาพ</span>
+      </button>
+      <button type="button" id="navHighlightBtn" class="dock-item" data-proxy="highlight-text-btn">
+        <i class="fa-solid fa-highlighter"></i><span>ไฮไลท์</span>
+      </button>
+      <button type="button" class="dock-item" data-proxy="highlightgreen-text-btn">
+        <i class="fa-solid fa-pen-nib" style="color:#1B7A5A"></i><span>ไฮไลท์เขียว</span>
+      </button>
+      <button type="button" class="dock-item" data-proxy="highlightpink-text-btn">
+        <i class="fa-regular fa-square" style="color:#DB6FA0"></i><span>กล่องชมพู</span>
+      </button>
+      <button type="button" id="dockShapeBtn" class="dock-item">
+        <i class="fa-solid fa-shapes"></i><span>รูปทรง</span>
+      </button>
+      <button type="button" class="dock-item" data-proxy="detect-qr-btn">
+        <i class="fa-solid fa-qrcode"></i><span>อ่าน QR</span>
+      </button>
+      <button type="button" class="dock-item dock-danger" data-proxy="delete-object-btn">
+        <i class="fa-regular fa-trash-can"></i><span>ลบที่เลือก</span>
+      </button>
+      <button type="button" id="mobileToolBtn" class="dock-item" aria-label="เปิดแผงเครื่องมือทั้งหมด">
+        <i class="fa-solid fa-sliders"></i><span>ตั้งค่า</span>
+      </button>
+    </nav>
+  </div>
 </div>
 
 <!-- ══════════════════════════ กล่องลายเซ็น ══════════════════════════ -->
@@ -1249,6 +1281,92 @@
   </div>
 </div>
 
+<!-- ══════════════════════════ แปลง PDF เป็น JPG ══════════════════════════ -->
+<div id="jpgPdfModal" class="modal-backdrop hidden">
+  <div class="modal-card modal-sheet w-full max-w-3xl flex flex-col">
+
+    <!-- Header -->
+    <div class="shrink-0 flex items-start justify-between mb-1">
+      <div>
+        <h2 class="font-display font-semibold text-lg">แปลง PDF เป็น JPG</h2>
+        <p class="text-xs text-ink-500 mt-0.5">เลือกหน้าที่ต้องการ แต่ละหน้าจะได้รูป JPG หนึ่งรูป</p>
+      </div>
+      <button id="closeJpgPdfModal" class="w-8 h-8 rounded-lg hover:bg-desk-100 text-ink-500 shrink-0" aria-label="ปิด">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="shrink-0 flex flex-wrap items-center gap-2 mt-3 py-3 border-b border-desk-200">
+      <span id="jpgFileName" class="w-full sm:w-auto sm:flex-1 min-w-0 truncate text-sm font-medium text-ink-700"></span>
+      <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+        <button id="jpgSelectAll" type="button"
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-600 border border-desk-300
+                       rounded-lg px-2.5 sm:px-3 py-2 sm:py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+          <i class="fa-solid fa-check-double"></i> เลือกทั้งหมด
+        </button>
+        <button id="jpgClearAll" type="button"
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-600 border border-desk-300
+                       rounded-lg px-2.5 sm:px-3 py-2 sm:py-1.5 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+          <i class="fa-solid fa-xmark"></i> ล้างทั้งหมด
+        </button>
+      </div>
+    </div>
+
+    <!-- ความคมชัด — คมมากไฟล์ใหญ่ ส่งต่อในไลน์ช้า จึงให้ค่าปกติเป็นค่าเริ่มต้น -->
+    <div id="jpgQualityPicker" class="shrink-0 mt-3 grid grid-cols-2 gap-1 rounded-xl bg-desk-100 p-1"
+         role="radiogroup" aria-label="ความคมชัดของรูป">
+      <button type="button" role="radio" data-jpg-dpi="150" aria-checked="true">
+        <i class="fa-regular fa-image"></i> ปกติ <span class="hidden sm:inline text-[11px] opacity-70">· ไฟล์เล็ก</span>
+      </button>
+      <button type="button" role="radio" data-jpg-dpi="300" aria-checked="false">
+        <i class="fa-solid fa-magnifying-glass-plus"></i> คมชัดสูง <span class="hidden sm:inline text-[11px] opacity-70">· สำหรับพิมพ์</span>
+      </button>
+    </div>
+
+    <!-- หน้าทั้งหมด -->
+    <div class="flex-1 overflow-y-auto mt-3 -mx-1 px-1">
+      <div id="jpgPageList" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 pb-4"></div>
+    </div>
+
+    <!-- Status -->
+    <div id="jpgStatus" class="hidden shrink-0 mt-3 flex items-center gap-2.5 rounded-lg bg-desk-100 px-3 py-2.5 text-xs text-ink-600">
+      <span id="jpgStatusSpinner" class="hidden shrink-0 w-3.5 h-3.5 rounded-full border-2 border-ink-200 border-t-ink-600 animate-spin"></span>
+      <span id="jpgStatusText" class="flex-1 leading-relaxed"></span>
+    </div>
+
+    <!-- โผล่หลังส่งเข้า LINE สำเร็จ ตอนนั้นแหละที่รูปไปนอนอยู่บน Drive -->
+    <p id="jpgKeepNotice" class="keep-notice hidden shrink-0 mt-3">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span data-keep-notice></span>
+    </p>
+
+    <!-- Footer -->
+    <div class="shrink-0 mt-4 pt-4 border-t border-desk-200
+                flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+      <p id="jpgFooterNote" class="text-xs text-ink-400">
+        เลือก <span class="font-semibold text-ink-700">0</span>
+        จาก <span class="font-semibold text-ink-700">0</span> หน้า
+      </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="cancelJpgBtn" class="btn-ghost hidden sm:inline-flex">ปิด</button>
+        <button type="button" id="jpgShareBtn"
+                class="hidden flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 py-3 sm:py-2.5
+                       font-semibold text-white whitespace-nowrap transition-opacity hover:opacity-90 disabled:opacity-50"
+                style="background:#06C755" disabled>
+          <i class="fa-brands fa-line text-lg"></i>
+          <span id="jpgShareLabel">แชร์เข้า LINE</span>
+        </button>
+        <button type="button" id="doJpgBtn" class="btn-primary flex-1 sm:flex-none whitespace-nowrap" disabled>
+          <i class="fa-solid fa-download"></i>
+          <span id="doJpgLabel">ดาวน์โหลด JPG</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- ══════════════════════════ Libraries ══════════════════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
@@ -1259,10 +1377,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="app.js"></script>
-<script src="flex-doc.js"></script>
-<script src="liff-share.js"></script>
-<script src="pdf-split.js"></script>
-<script src="pdf-merge.js"></script>
+<!-- ?v= คือเลขรุ่น แก้ไฟล์ .js/.css เมื่อไรให้เปลี่ยนเลขนี้ทุกที่ (รวม style.css ด้านบน และ share.html)
+     ไม่งั้นแอป LINE จะใช้ไฟล์เก่าที่จำไว้ ปุ่มใหม่จะกดไม่ติด -->
+<script src="app.js?v=20261001b"></script>
+<script src="flex-doc.js?v=20261001b"></script>
+<script src="liff-share.js?v=20261001b"></script>
+<script src="pdf-split.js?v=20261001b"></script>
+<script src="pdf-merge.js?v=20261001b"></script>
+<script src="pdf-jpg.js?v=20261001b"></script>
 </body>
 </html>

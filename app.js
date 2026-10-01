@@ -373,6 +373,19 @@ document.addEventListener('click', (e) => {
   if (!moreMenu.contains(e.target)) closeMoreMenu();
 });
 
+// รูปทรงต้องเลือกแบบและสีก่อน จึงเปิดแผงเครื่องมือแล้วกางส่วนรูปทรงให้เลย
+$('dockShapeBtn').addEventListener('click', () => {
+  openToolPanel();
+  if ($('shape-settings').classList.contains('hidden')) $('shape-btn').click();
+  setTimeout(() => $('shape-btn').scrollIntoView({ block: 'start', behavior: 'smooth' }), 320);
+});
+
+// ปัดจนสุดขวาแล้วเลิกทำขอบจาง จะได้ไม่ดูเหมือนยังมีปุ่มซ่อนอยู่
+const toolDock = $('mobileNav');
+toolDock.addEventListener('scroll', () => {
+  toolDock.classList.toggle('is-end', toolDock.scrollLeft + toolDock.clientWidth >= toolDock.scrollWidth - 4);
+}, { passive: true });
+
 // ปุ่มไฮไลท์ที่แถบล่างติดสีตามสถานะของปุ่มจริงในแผงเครื่องมือ
 new MutationObserver(() => {
   $('navHighlightBtn').classList.toggle('is-active', $('highlight-text-btn').classList.contains('is-active'));
@@ -465,6 +478,10 @@ function showActionPicker() {
     ? `รวม ${toThaiDigits(pickedFiles.length)} ไฟล์ที่เลือกไว้ เรียงลำดับได้`
     : 'เพิ่มไฟล์อื่นในขั้นถัดไป แล้วรวมเป็นไฟล์เดียว');
 
+  setTextIfExists('actionJpgNote', many
+    ? `ใช้ไฟล์แรก · ${firstName}`
+    : 'เลือกหน้า แล้วบันทึกเป็นรูปภาพ');
+
   startStep1.classList.add('hidden');
   startStep2.classList.remove('hidden');
 }
@@ -493,6 +510,12 @@ $('actionMergeBtn').addEventListener('click', () => {
   window.PdfMerge.open(pickedFiles);
 });
 
+$('actionJpgBtn').addEventListener('click', () => {
+  if (!pickedFiles.length) return;
+  if (!window.PdfJpg) { toast('เครื่องมือแปลงเป็น JPG ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง', 'error'); return; }
+  window.PdfJpg.open(pickedFiles[0]);
+});
+
 /** เปิดไฟล์เข้าหน้าแก้ไขเอกสาร */
 function openForEdit(file) {
   if (!file) return;
@@ -515,7 +538,9 @@ async function loadPDFData(pdfData) {
 
     await renderPDF(pdfDoc);
 
-    toast('เปิดเอกสารแล้ว เลือกเครื่องมือจากแผงด้านซ้ายได้เลย');
+    toast(window.innerWidth >= 768
+      ? 'เปิดเอกสารแล้ว เลือกเครื่องมือจากแผงด้านซ้ายได้เลย'
+      : 'เปิดเอกสารแล้ว เลือกเครื่องมือจากแถบด้านล่างได้เลย');
   } catch (err) {
     console.error(err);
     previewSection.classList.add('hidden');

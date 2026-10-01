@@ -1100,6 +1100,54 @@ window.LineShare = {
       ? `ส่ง ${thai(list.length)} ไฟล์เข้า LINE แล้ว`
       : 'ส่งเอกสารเข้า LINE แล้ว');
     return true;
+  },
+
+  /** ด้านยาวของรูปที่ควรส่ง ใช้ค่าเดียวกับการส่งรูปจากหน้าทำงาน */
+  imageLongEdge: IMAGE_LONG_EDGE,
+
+  /**
+   * ส่งรูป JPG เข้าแชทเป็นข้อความรูปภาพ (ไม่ใช่การ์ด) ผู้รับเห็นรูปทันที
+   * items = [{ blob, filename }]
+   * รูปต้องขึ้น Drive ก่อน เพราะ LINE จะไปดึงรูปจากลิงก์เอง
+   * คืน true เมื่อส่งสำเร็จ
+   */
+  async shareImages(items, onProgress) {
+    const blocked = shareBlockReason();
+    if (blocked) { toast(blocked, 'error'); return false; }
+
+    const list = (items || []).filter((it) => it && it.blob);
+    if (!list.length) { toast('ยังไม่มีรูปให้แชร์', 'error'); return false; }
+    if (list.length > MESSAGE_MAX) {
+      toast(`LINE ส่งได้ครั้งละไม่เกิน ${thai(MESSAGE_MAX)} รูป`, 'error');
+      return false;
+    }
+
+    if (onProgress) onProgress();
+
+    const images = [];
+    for (const it of list) {
+      images.push({
+        base64: bytesToBase64(await toBytes(it.blob)),
+        filename: String(it.filename || 'รูป.jpg').replace(/[\\/:*?"<>|]/g, '-'),
+        mime: 'image/jpeg'
+      });
+    }
+
+    const out = await cloudPost('saveShareImages', { images });
+    const uploaded = out.images || [];
+    if (!uploaded.length) throw new Error('เซิร์ฟเวอร์ไม่ได้คืนลิงก์รูป');
+
+    const messages = uploaded.map((image) => ({
+      type: 'image',
+      originalContentUrl: image.originalUrl,
+      previewImageUrl: image.previewUrl
+    }));
+
+    const result = await liff.shareTargetPicker(messages, { isMultiple: true });
+    if (!result) { toast('ยกเลิกการแชร์', 'info'); return false; }
+
+    toast(`ส่งรูป ${thai(messages.length)} รูปเข้า LINE แล้ว`);
+    return true;
   }
 };
 
