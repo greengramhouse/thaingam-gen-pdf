@@ -33,6 +33,16 @@
   var shareBtn      = document.getElementById('jpgShareBtn');
   var shareLabel    = document.getElementById('jpgShareLabel');
   var keepNotice    = document.getElementById('jpgKeepNotice');
+  var resultPane    = document.getElementById('jpgResultPane');
+  var resultList    = document.getElementById('jpgResultList');
+  var resultCount   = document.getElementById('jpgResultCount');
+  var backBtn       = document.getElementById('jpgBackBtn');
+  var zipBtn        = document.getElementById('jpgZipBtn');
+  var saveAllBtn    = document.getElementById('jpgSaveAllBtn');
+  var saveAllLabel  = document.getElementById('jpgSaveAllLabel');
+
+  /* รูปที่แปลงเสร็จแล้วบนมือถือ [{ pageNum, blob, filename, url }] */
+  var results = [];
 
   if (!modal) return;
 
@@ -259,11 +269,176 @@
     return Promise.resolve('saved');
   }
 
+  /** มือถือแท็บเล็ต (จอสัมผัสเป็นหลัก) ดาวน์โหลดไฟล์แบบคอมไม่ค่อยได้ผล */
+  function isTouchDevice() {
+    return window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function selectedPages() {
+    return Array.from(jpgSelected).sort(function (a, b) { return a - b; })
+      .map(function (idx) { return idx + 1; });
+  }
+
   doBtn.addEventListener('click', function () {
     if (!jpgPdfDoc || !jpgSelected.size) return;
+    if (isTouchDevice()) convertForPhone();
+    else downloadFiles();
+  });
 
-    var pages = Array.from(jpgSelected).sort(function (a, b) { return a - b; })
-      .map(function (idx) { return idx + 1; });
+  /* ══ มือถือ: แปลงแล้วแสดงรูป ให้บันทึกลงคลังรูปเอง ══
+     ดาวน์โหลดแบบคอมใช้บนมือถือไม่ค่อยได้ ในแอป LINE ไปไม่ถึงไฟล์ ใน Safari รูปไม่เข้าคลังรูป
+     เมนูแชร์ของเครื่องต้องเรียกตรงจากการแตะของผู้ใช้ เรียกหลังแปลงเสร็จ
+     (ผ่านไปหลายวินาที) เบราว์เซอร์จะไม่ยอม จึงต้องมีหน้าผลลัพธ์คั่นให้แตะอีกที */
+  function convertForPhone() {
+    var pages = selectedPages();
+    doBtn.disabled = true;
+    clearResults();
+
+    var chain = Promise.resolve();
+    pages.forEach(function (pageNum, order) {
+      chain = chain.then(function () {
+        showStatus('กำลังแปลงหน้า ' + pageNum + ' (' + (order + 1) + ' จาก ' + pages.length + ')...', true);
+        return pageToJpeg(pageNum).then(function (blob) {
+          results.push({
+            pageNum: pageNum,
+            blob: blob,
+            filename: baseName() + '_หน้า-' + pageNum + '.jpg',
+            url: URL.createObjectURL(blob)
+          });
+        });
+      });
+    });
+
+    chain.then(function () {
+      hideStatus();
+      showResults();
+    }).catch(function (err) {
+      console.error(err);
+      clearResults();
+      showStatus('เกิดข้อผิดพลาด: ' + err.message, false, true);
+    }).finally(updateFooter);
+  }
+
+  function showResults() {
+    resultList.innerHTML = '';
+    results.forEach(function (item, i) {
+      var fig = document.createElement('figure');
+      fig.className = 'rounded-xl border border-desk-300 bg-white overflow-hidden';
+      fig.innerHTML =
+        '<img src="' + item.url + '" alt="หน้า ' + item.pageNum + '" class="block w-full bg-desk-100" />' +
+        '<figcaption class="flex items-center justify-between gap-2 px-3 py-2">' +
+          '<span class="text-xs text-ink-500 min-w-0 truncate">หน้า ' + item.pageNum + '</span>' +
+          '<button type="button" data-save="' + i + '" class="shrink-0 inline-flex items-center gap-1.5 rounded-lg' +
+                ' bg-ink-700 text-white text-xs font-semibold px-3 py-2 hover:bg-ink-900 transition-colors">' +
+            '<i class="fa-solid fa-download"></i> บันทึกรูป' +
+          '</button>' +
+        '</figcaption>';
+      resultList.appendChild(fig);
+    });
+
+    resultCount.textContent = 'แปลงเสร็จ ' + results.length + ' รูป';
+    saveAllLabel.textContent = results.length > 1 ? 'บันทึกทั้งหมด (' + results.length + ' รูป)' : 'บันทึกรูป';
+    zipBtn.classList.toggle('hidden', results.length < 2);
+
+    setPickMode(false);
+  }
+
+  resultList.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-save]');
+    if (btn) saveImages([results[parseInt(btn.dataset.save, 10)]]);
+  });
+
+  saveAllBtn.addEventListener('click', function () { saveImages(results); });
+
+  zipBtn.addEventListener('click', function () {
+    if (!results.length || typeof JSZip === 'undefined') return;
+    var zip = new JSZip();
+    results.forEach(function (item) { zip.file(item.filename, item.blob); });
+    showStatus('กำลังบีบอัดเป็นไฟล์ zip...', true);
+    zip.generateAsync({ type: 'blob' }).then(function (blob) {
+      return deliver(blob, baseName() + '_JPG.zip', 'application/zip', results.length);
+    }).then(function (how) {
+      showStatus(how === 'drive'
+        ? 'เปิดไฟล์ zip ในเบราว์เซอร์แล้ว กดดาวน์โหลดต่อได้เลย ✓'
+        : 'สร้างไฟล์ zip เสร็จแล้ว ✓', false);
+    }).catch(function (err) {
+      console.error(err);
+      showStatus('เกิดข้อผิดพลาด: ' + err.message, false, true);
+    });
+  });
+
+  backBtn.addEventListener('click', function () {
+    clearResults();
+    hideStatus();
+    setPickMode(true);
+  });
+
+  /**
+   * บันทึกรูปลงเครื่อง
+   * ทางหลักคือเมนูแชร์ของเครื่อง ซึ่งมีปุ่ม "บันทึกรูปภาพ" ลงคลังรูปได้ตรง ๆ
+   * เครื่องที่ไม่มีเมนูนี้ (เช่นเบราว์เซอร์ในแอป LINE บางรุ่น) ให้กดค้างที่รูปแทน
+   */
+  function saveImages(items) {
+    if (!items.length) return;
+
+    var files = items.map(function (item) {
+      return new File([item.blob], item.filename, { type: 'image/jpeg' });
+    });
+
+    var canShareFiles = false;
+    try {
+      canShareFiles = !!(navigator.canShare && navigator.share && navigator.canShare({ files: files }));
+    } catch (err) {
+      canShareFiles = false;
+    }
+
+    if (canShareFiles) {
+      // ส่งแต่ไฟล์ ไม่ใส่ title/text เพราะบน iOS จะทำให้ปุ่ม "บันทึกรูปภาพ" หายไป
+      navigator.share({ files: files }).catch(function (err) {
+        if (err && err.name === 'AbortError') return;   // ผู้ใช้ปิดเมนูเอง
+        console.warn('เปิดเมนูแชร์ไม่สำเร็จ', err);
+        longPressHint();
+      });
+      return;
+    }
+
+    // ในแอป LINE ดาวน์โหลดตรงไปไม่ถึงไฟล์ บอกให้กดค้างที่รูปแทน
+    if (window.LineFile && window.LineFile.inClient()) {
+      longPressHint();
+      return;
+    }
+
+    items.forEach(function (item) {
+      var a = document.createElement('a');
+      a.href = item.url;
+      a.download = item.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+    showStatus('ถ้ารูปไม่เข้าคลังรูป ให้กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ"', false);
+  }
+
+  function longPressHint() {
+    showStatus('เครื่องนี้ไม่มีเมนูบันทึกรูป ให้กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ"', false);
+  }
+
+  /** สลับระหว่างหน้าเลือกหน้า กับหน้าผลลัพธ์ */
+  function setPickMode(on) {
+    modal.querySelectorAll('.jpg-pick').forEach(function (el) { el.classList.toggle('hidden', !on); });
+    resultPane.classList.toggle('hidden', on);
+    resultPane.classList.toggle('flex', !on);
+  }
+
+  function clearResults() {
+    results.forEach(function (item) { URL.revokeObjectURL(item.url); });
+    results = [];
+    resultList.innerHTML = '';
+  }
+
+  /* ══ คอม: ดาวน์โหลดเป็นไฟล์ JPG หรือ ZIP ══ */
+  function downloadFiles() {
+    var pages = selectedPages();
 
     if (pages.length > 1 && typeof JSZip === 'undefined') {
       showStatus('โหลดตัวบีบอัดไฟล์ (JSZip) ไม่สำเร็จ ลองรีเฟรชหน้าเว็บอีกครั้ง', false, true);
@@ -302,7 +477,7 @@
       console.error(err);
       showStatus('เกิดข้อผิดพลาด: ' + err.message, false, true);
     }).finally(updateFooter);
-  });
+  }
 
   /* ── แชร์เข้า LINE ──
      ไม่ว่าเลือกความคมชัดไว้แค่ไหน LINE ก็ย่อรูปเหลือด้านยาวราว 1600px อยู่ดี
@@ -368,6 +543,8 @@
     jpgTotalPages = 0;
     jpgSelected.clear();
     pageList.innerHTML = '';
+    clearResults();
+    setPickMode(true);
     if (keepNotice) keepNotice.classList.add('hidden');
     hideStatus();
     paintQuality();

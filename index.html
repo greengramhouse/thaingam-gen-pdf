@@ -43,7 +43,7 @@
         integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20261001b" />
+  <link rel="stylesheet" href="style.css?v=20261001c" />
 
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
@@ -1297,7 +1297,7 @@
     </div>
 
     <!-- Toolbar -->
-    <div class="shrink-0 flex flex-wrap items-center gap-2 mt-3 py-3 border-b border-desk-200">
+    <div class="jpg-pick shrink-0 flex flex-wrap items-center gap-2 mt-3 py-3 border-b border-desk-200">
       <span id="jpgFileName" class="w-full sm:w-auto sm:flex-1 min-w-0 truncate text-sm font-medium text-ink-700"></span>
       <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
         <button id="jpgSelectAll" type="button"
@@ -1314,7 +1314,7 @@
     </div>
 
     <!-- ความคมชัด — คมมากไฟล์ใหญ่ ส่งต่อในไลน์ช้า จึงให้ค่าปกติเป็นค่าเริ่มต้น -->
-    <div id="jpgQualityPicker" class="shrink-0 mt-3 grid grid-cols-2 gap-1 rounded-xl bg-desk-100 p-1"
+    <div id="jpgQualityPicker" class="jpg-pick shrink-0 mt-3 grid grid-cols-2 gap-1 rounded-xl bg-desk-100 p-1"
          role="radiogroup" aria-label="ความคมชัดของรูป">
       <button type="button" role="radio" data-jpg-dpi="150" aria-checked="true">
         <i class="fa-regular fa-image"></i> ปกติ <span class="hidden sm:inline text-[11px] opacity-70">· ไฟล์เล็ก</span>
@@ -1325,7 +1325,7 @@
     </div>
 
     <!-- หน้าทั้งหมด -->
-    <div class="flex-1 overflow-y-auto mt-3 -mx-1 px-1">
+    <div class="jpg-pick flex-1 overflow-y-auto mt-3 -mx-1 px-1">
       <div id="jpgPageList" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 pb-4"></div>
     </div>
 
@@ -1341,8 +1341,39 @@
       <span data-keep-notice></span>
     </p>
 
+    <!-- มือถือ: ผลลัพธ์หลังแปลง
+         ดาวน์โหลดไฟล์แบบคอมใช้บนมือถือไม่ค่อยได้ (ในแอป LINE ไปไม่ถึงไฟล์ ใน Safari รูปไม่เข้าคลังรูป)
+         จึงแสดงรูปให้เห็น แล้วบันทึกผ่านเมนูแชร์ของเครื่อง หรือกดค้างที่รูป -->
+    <div id="jpgResultPane" class="hidden flex-1 flex-col min-h-0 mt-3">
+      <div class="shrink-0 flex items-center justify-between gap-2">
+        <button id="jpgBackBtn" type="button"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 border border-desk-300
+                       rounded-lg px-3 py-2 hover:bg-ink-50 hover:border-ink-400 transition-colors">
+          <i class="fa-solid fa-arrow-left"></i> เลือกหน้าใหม่
+        </button>
+        <span id="jpgResultCount" class="text-xs text-ink-500"></span>
+      </div>
+
+      <p class="shrink-0 mt-3 rounded-lg bg-ink-50 px-3 py-2 text-[12px] leading-relaxed text-ink-600">
+        <i class="fa-regular fa-lightbulb text-ink-400"></i>
+        กด <b>บันทึกรูป</b> แล้วเลือก <b>บันทึกรูปภาพ</b> รูปจะเข้าคลังรูปในเครื่อง
+        · ถ้าไม่มีเมนูขึ้น ให้<b>กดค้างที่รูป</b> แล้วเลือกบันทึกรูปภาพ
+      </p>
+
+      <div id="jpgResultList" class="flex-1 overflow-y-auto mt-3 -mx-1 px-1 space-y-4 pb-4"></div>
+
+      <div class="shrink-0 mt-3 pt-3 border-t border-desk-200 flex gap-2">
+        <button id="jpgZipBtn" type="button" class="btn-secondary flex-1 hidden">
+          <i class="fa-regular fa-file-zipper"></i> ไฟล์ ZIP
+        </button>
+        <button id="jpgSaveAllBtn" type="button" class="btn-primary flex-[1.6]">
+          <i class="fa-solid fa-download"></i> <span id="jpgSaveAllLabel">บันทึกรูป</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Footer -->
-    <div class="shrink-0 mt-4 pt-4 border-t border-desk-200
+    <div id="jpgFooter" class="jpg-pick shrink-0 mt-4 pt-4 border-t border-desk-200
                 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
       <p id="jpgFooterNote" class="text-xs text-ink-400">
         เลือก <span class="font-semibold text-ink-700">0</span>
@@ -1379,11 +1410,11 @@
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <!-- ?v= คือเลขรุ่น แก้ไฟล์ .js/.css เมื่อไรให้เปลี่ยนเลขนี้ทุกที่ (รวม style.css ด้านบน และ share.html)
      ไม่งั้นแอป LINE จะใช้ไฟล์เก่าที่จำไว้ ปุ่มใหม่จะกดไม่ติด -->
-<script src="app.js?v=20261001b"></script>
-<script src="flex-doc.js?v=20261001b"></script>
-<script src="liff-share.js?v=20261001b"></script>
-<script src="pdf-split.js?v=20261001b"></script>
-<script src="pdf-merge.js?v=20261001b"></script>
-<script src="pdf-jpg.js?v=20261001b"></script>
+<script src="app.js?v=20261001c"></script>
+<script src="flex-doc.js?v=20261001c"></script>
+<script src="liff-share.js?v=20261001c"></script>
+<script src="pdf-split.js?v=20261001c"></script>
+<script src="pdf-merge.js?v=20261001c"></script>
+<script src="pdf-jpg.js?v=20261001c"></script>
 </body>
 </html>
