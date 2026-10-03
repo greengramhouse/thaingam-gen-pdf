@@ -256,7 +256,7 @@ async function bootLiff() {
   }
 
   try {
-    await liff.init({ liffId: LIFF_ID });
+    await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
   } catch (err) {
     console.error('liff.init ไม่สำเร็จ', err);
     setGate('error', 'เริ่มต้น LIFF ไม่สำเร็จ',
